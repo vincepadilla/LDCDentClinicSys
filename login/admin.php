@@ -1027,10 +1027,16 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                                         <i class="fas fa-edit"></i>
                                     </button>
 
-                                    <button class="action-btn btn-gray" title="See More" onclick="editPatient('<?php echo $row['patient_id']; ?>')">
+                                    <button class="action-btn btn-danger" title="Archive" onclick="editPatient('<?php echo $row['patient_id']; ?>')">
+                                        <i class="fa-solid fa-box-archive"></i>
+                                    </button>
+
+                                    <button class="action-btn btn-gray" title="See More" onclick="seeTreatmentHistory('<?php echo $row['patient_id']; ?>')">
                                         <i class="fa-solid fa-circle-info"></i>
                                     </button>
                                 </div>
+
+                                
                             </td>
                         </tr>
                     <?php 
@@ -1104,6 +1110,32 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                 <button type="button" onclick="closeEditPatientModal()" class="modal-close-btn">Close</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Treatment History Modal -->
+<div id="treatmentHistoryModal" class="treatment-modal" style="display:none;">
+    <div class="treatment-modal-content">
+        <div class="treatment-modal-header">
+            <h3><i class="fa-solid fa-notes-medical"></i> Treatment History</h3>
+            <span class="treatment-close-btn" onclick="closeTreatmentModal()">&times;</span>
+        </div>
+            <div class="treatment-modal-body">
+                <table id="treatmentHistoryTable" class="treatment-table" border="1" cellspacing="0" cellpadding="5" style="width:100%;">
+                    <thead>
+                    <tr>
+                        <th>Treatment</th>
+                        <th>Prescription</th>
+                        <th>Notes</th>
+                        <th>Cost (₱)</th>
+                        <th>Date</th>
+                    </tr>
+                    </thead>
+                    <tbody id="treatmentHistoryBody">
+                    <tr><td colspan="5" style="text-align:center;">No data available</td></tr>
+                    </tbody>
+                </table>
+            </div>
     </div>
 </div>
 
@@ -2141,6 +2173,56 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         const selectedID = document.getElementById("patient_id").value;
         document.getElementById("patient_name").value = patientsMap[selectedID] || '';
     }
+    
+    // See More Patient Modal
+    function seeTreatmentHistory(patientId) {
+        const modal = document.getElementById("treatmentHistoryModal");
+        const tbody = document.getElementById("treatmentHistoryBody");
+
+        // Clear table first
+        tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Loading...</td></tr>";
+
+        // Fetch data via AJAX
+        fetch("getTreatmentHistory.php?patient_id=" + patientId)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success" && data.data.length > 0) {
+                    tbody.innerHTML = "";
+                    data.data.forEach(treatment => {
+                        const row = `
+                            <tr>
+                                <td>${treatment.treatment}</td>
+                                <td>${treatment.prescription_given}</td>
+                                <td>${treatment.notes}</td>
+                                <td>₱${parseFloat(treatment.treatment_cost).toFixed(2)}</td>
+                                <td>${treatment.created_at}</td>
+                            </tr>`;
+                        tbody.insertAdjacentHTML("beforeend", row);
+                    });
+                } else {
+                    tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>No treatment history found.</td></tr>";
+                }
+            })
+            .catch(error => {
+                console.error("Error fetching treatment history:", error);
+                tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;color:red;'>Error loading data</td></tr>";
+            });
+
+        modal.style.display = "block";
+    }
+
+    // Close modal
+    function closeTreatmentModal() {
+        document.getElementById("treatmentHistoryModal").style.display = "none";
+    }
+
+    // Close when clicking outside
+    window.addEventListener("click", function(event) {
+        const modal = document.getElementById("treatmentHistoryModal");
+        if (event.target === modal) {
+            closeTreatmentModal();
+        }
+    });
 
     // Appointment availability checking
     $(document).ready(function(){
