@@ -400,17 +400,17 @@ $result = mysqli_query($con, $sql);
 <div id="complete-appointment-modal" class="complete-appointment-modal">
     <div class="complete-appointment-content">
         <div class="complete-appointment-header">
-            <h3><i class="fas fa-teeth"></i> Complete Appointment</h3>
+            <h3><i class="fa-solid fa-check-to-slot"></i>Complete Appointment</h3>
             <span class="complete-appointment-close">&times;</span>
         </div>
         <div class="complete-appointment-body">
-            <form id="treatmentForm" action="saveTreatment.php" method="POST">
+            <form id="treatmentForm" action="saveTreatment.php" method="post">
                 <input type="hidden" id="treatment_patient_id" name="patient_id">
                 <input type="hidden" id="treatment_appointment_id" name="appointment_id">
 
                 <div class="complete-appointment-form-group">
                     <label for="patient-id">Patient ID:</label>
-                    <input type="text" id="patient-id" name="patient_id" value="<?php echo isset($patient_id) ? htmlspecialchars($patient_id) : ''; ?>" disabled>
+                    <input type="text" id="patient_id" name="patient_id" value="<?php echo isset($patient_id) ? htmlspecialchars($patient_id) : ''; ?>" readonly>
                 </div>
                 
                 <div class="complete-appointment-form-group">
@@ -1026,6 +1026,10 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                                     <button class="action-btn btn-primary" title="Edit" onclick="editPatient('<?php echo $row['patient_id']; ?>')">
                                         <i class="fas fa-edit"></i>
                                     </button>
+
+                                    <button class="action-btn btn-gray" title="See More" onclick="editPatient('<?php echo $row['patient_id']; ?>')">
+                                        <i class="fa-solid fa-circle-info"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -1276,8 +1280,67 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 
 
 <!-- Patient Treatment History -->
-<div id="history" class="main-content" style="display:none">
+<div id="treatment" class="main-content" style="display:none">
+    <div class="container">
+        <?php
+                $historySql = "SELECT patient_id, treatment, prescription_given, treatment_cost, notes
+                            FROM treatment_history";
 
+                $historyResult = mysqli_query($con, $historySql);
+            ?>
+        <h2><i class="fa-solid fa-notes-medical"></i> Patient Treatment History</h2>
+
+        <div class="table-responsive">
+            <table id="appointments-table">
+                <thead>
+                    <tr>
+                        <th>Patient ID</th>
+                        <th>Treatment</th>
+                        <th>Prescription Given</th>
+                        <th>Treatment Cost</th>
+                        <th>Notes</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php 
+                    if(mysqli_num_rows($historyResult) > 0) {
+                        while ($row = mysqli_fetch_assoc($historyResult)) { 
+                    ?>
+                        <tr class="history-row">
+                            <td><?php echo htmlspecialchars($row['patient_id']); ?></td>
+                            <td><?php echo htmlspecialchars($row['treatment']); ?></td>
+                            <td><?php echo htmlspecialchars($row['prescription_given']); ?></td>
+                            <td><?php echo htmlspecialchars($row['treatment_cost']); ?></td>
+                            <td><?php echo htmlspecialchars($row['notes']); ?></td>
+                            <td>
+                                <div class="action-btns">
+                                    <form action="archiveHistory.php" method="POST" style="display:inline;">
+                                        <input type="hidden" name="patient_id" value="<?php echo $row['patient_id']; ?>">
+                                        <button type="submit" class="action-btn btn-primary-confirmed" title="Archive">
+                                            <i class="fa-solid fa-box-archive"></i>
+                                        </button>
+                                    </form>
+
+                                    
+                                </div>
+                            </td>
+                        </tr>
+                    <?php 
+                        }
+                    } else { 
+                    ?>
+                        <tr>
+                            <td colspan="6" class="no-data">
+                                <i class="fas fa-calendar-times fa-2x"></i>
+                                <p>No Patient History found</p>
+                            </td>
+                        </tr>
+                    <?php } ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <!-- Payment Transactions -->
@@ -2028,7 +2091,8 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
     // Set the values in the modal form
     document.getElementById('treatment_patient_id').value = patientId;
     document.getElementById('treatment_appointment_id').value = appointmentId;
-    
+    document.getElementById("patient_id").value = patientId; // show in the disabled field
+
     // Show the modal
     document.getElementById('complete-appointment-modal').style.display = 'block';
     }
@@ -2068,15 +2132,6 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             }
         });
         
-        // Form submission handler
-        if (treatmentForm) {
-            treatmentForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                // Add your form submission logic here
-                alert('Treatment details saved successfully!');
-                closeCompleteAppointmentModal();
-            });
-        }
     });
 
     // Patient data for appointment modal

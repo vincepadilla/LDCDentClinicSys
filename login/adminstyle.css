@@ -370,6 +370,11 @@ input[type="date"]:focus, select:focus {
     background: #d45d3e;
 }
 
+.btn-gray {
+    background: var(--text-light);
+    color: white;
+}
+
 
 .table-responsive {
     width: 100%;
