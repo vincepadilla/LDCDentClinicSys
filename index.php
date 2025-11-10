@@ -1,4 +1,5 @@
 <!-- hinack ko na by rhenz pogi -->
+ <!-- Buti pa ang html may Label -->
 
 
 <?php
