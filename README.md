@@ -12,3 +12,5 @@ tulog kana vince
 
 San si charles?
 bat ayaw mag salita ni von
+
+San si hanz?
