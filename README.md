@@ -8,5 +8,3 @@ git pull
 git push
 
 GANOTICE POGI
-
-Ang ganda ng crush ko huhuhu god damn
