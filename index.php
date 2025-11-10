@@ -1,3 +1,6 @@
+<!-- hinack ko na by rhenz pogi -->
+
+
 <?php
 session_start();
 include_once('./login/config.php');
