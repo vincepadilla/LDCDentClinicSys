@@ -7,14 +7,41 @@
 body {
     font-family: 'Poppins', sans-serif;
     background: #f8fafc;
-    overflow: hidden;
+}
+
+.back-home {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 100;
+}
+
+.back-home-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.back-home-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
 }
 
 /* LAYOUT */
 .login-container {
     display: flex;
     height: 100vh;
-    min-height: 700px;
+    min-height: 100vh;
+    width: 100%;
 }
 
 /* LEFT SIDE */
@@ -25,7 +52,9 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: 40px;
     animation: fadeIn 1s ease-in;
+    overflow: auto;
 }
 
 @keyframes fadeIn {
@@ -98,6 +127,7 @@ body {
     align-items: center;
     justify-content: center;
     padding: 40px;
+    overflow-y: auto;
 }
 
 .right-content {
@@ -445,13 +475,14 @@ body {
 @media (max-width: 1024px) {
     .login-container {
         flex-direction: column;
-        height: auto;
         min-height: 100vh;
+        overflow: auto;
     }
     
     .login-left {
-        min-height: 300px;
+        min-height: 40vh;
         padding: 40px 20px;
+        flex: none;
     }
     
     .left-content {
@@ -476,6 +507,11 @@ body {
     
     .login-right {
         padding: 40px 20px;
+        flex: none;
+    }
+
+    .back-home {
+        position: absolute;
     }
 }
 
@@ -523,6 +559,56 @@ body {
     
     .terms-agreement label {
         line-height: 1.3;
+    }
+
+    .back-home {
+        position: fixed; 
+        top: 15px;
+        left: 15px;
+    }
+
+    .back-home-btn {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    
+    .feature-list {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .input-field input {
+        padding: 12px 40px 12px 40px;
+        font-size: 14px;
+    }
+}
+
+/* For landscape orientation on mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+    .login-container {
+        flex-direction: row; /* Keep side-by-side in landscape */
+    }
+    
+    .login-left {
+        min-height: 100vh;
+    }
+    
+    .login-right {
+        min-height: 100vh;
+        overflow-y: auto;
+    }
+    
+    .left-content {
+        padding: 20px;
+    }
+    
+    .left-content h1 {
+        font-size: 24px;
+        margin-bottom: 15px;
+    }
+    
+    .feature-list {
+        display: none; /* Hide features in landscape to save space */
     }
 }
 
@@ -626,6 +712,7 @@ body {
         margin-bottom: 16px !important;
     }
 }
+
 
 @media (max-height: 800px) {
     .login-right {

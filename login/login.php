@@ -64,6 +64,14 @@ if (isset($_POST['submit'])) {
 </head>
 <body>
     <div class="login-container">
+
+        <!-- Back to Home Button -->
+        <div class="back-home">
+                <a href="../index.php" class="back-home-btn">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Home
+                </a>
+        </div>
         <!-- LEFT SIDE -->
         <div class="login-left">
             <div class="overlay"></div>

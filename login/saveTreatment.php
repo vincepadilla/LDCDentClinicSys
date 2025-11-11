@@ -73,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // 🦷 Optional: Mark appointment as complete if provided
         if (!empty($appointment_id)) {
-            $updateStatus = $con->prepare("UPDATE appointments SET status = 'Complete' WHERE appointment_id = ?");
+            $updateStatus = $con->prepare("UPDATE appointments SET status = 'Completed' WHERE appointment_id = ?");
             $updateStatus->bind_param("s", $appointment_id);
             $updateStatus->execute();
             $updateStatus->close();

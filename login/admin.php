@@ -1487,23 +1487,29 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 
         <!-- Report Selector -->
         <div class="report-selector">
-            <label for="reportType">Select Report:</label>
-            <select id="reportType" onchange="toggleReportSections()">
-                <option value="overview" selected>Dashboard Overview</option>
+            <label for="reportType">Filter Reports:</label>
+            <select id="reportType" onchange="filterReports()">
+                <option value="all" selected>Show All Reports</option>
+                <!--<option value="overview">Dashboard Overview</option> -->
                 <option value="service">Monthly Service Distribution</option>
                 <option value="appointments">Appointments Per Day</option>
-                <option value="financial">Total Downpayment Report</option>
+                <option value="financial">Revenue by Services</option>
             </select>
         </div>
 
         <!-- Dashboard Overview -->
-        <div id="overviewReport">
+        <div id="overviewReport" class="report-section">
+            <div class="section-header">
+                <h3><i class="fas fa-chart-pie"></i> Dashboard Overview</h3>
+            </div>
             <?php
             // Total Appointments
             $totalAppointments = mysqli_fetch_assoc(mysqli_query($con, "SELECT COUNT(*) AS total FROM appointments"))['total'];
             
             // Total Down Payment
-            $totalRevenue = mysqli_fetch_assoc(mysqli_query($con, "SELECT IFNULL(SUM(amount), 0) AS total FROM payment WHERE status = 'paid'"))['total'];
+            $totaldownPayment = mysqli_fetch_assoc(mysqli_query($con, "SELECT IFNULL(SUM(amount), 0) AS total FROM payment WHERE status = 'paid'"))['total'];
+
+            $totalRevenue = mysqli_fetch_assoc(mysqli_query($con, "SELECT IFNULL(SUM(treatment_cost), 0) AS total FROM treatment_history"))['total'];
             
             // Today's Appointments
             $todayAppointments = mysqli_fetch_assoc(mysqli_query($con, "
@@ -1520,6 +1526,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             "));
             $noShowRate = $noShowData['total_appointments'] > 0 ? 
                 round(($noShowData['no_shows'] / $noShowData['total_appointments']) * 100, 2) : 0;
+                
             
             // Appointment Status Breakdown
             $statusQuery = mysqli_query($con, "
@@ -1574,15 +1581,15 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                 </div>
                 <div class="report-stat-card">
                     <div class="stat-label">Total Down Payment</div>
-                    <div class="stat-value">₱<?php echo number_format($totalRevenue, 2); ?></div>
+                    <div class="stat-value">₱<?php echo number_format($totaldownPayment, 2); ?></div>
                 </div>
                 <div class="report-stat-card">
                     <div class="stat-label">Today's Appointments</div>
                     <div class="stat-value"><?php echo $todayAppointments; ?></div>
                 </div>
                 <div class="report-stat-card">
-                    <div class="stat-label">No-Show Rate</div>
-                    <div class="stat-value"><?php echo $noShowRate; ?>%</div>
+                    <div class="stat-label">Total Revenue By Services</div>
+                    <div class="stat-value">₱<?php echo number_format($totalRevenue, 2); ?></div>
                 </div>
             </div>
 
@@ -1603,12 +1610,6 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 
             <!-- Charts Row 2 -->
             <div class="charts-row">
-                <!-- Services Availed Count -->
-                <div class="chart-box">
-                    <h3>Services Availed Count</h3>
-                    <canvas id="servicesAvailedChart"></canvas>
-                </div>
-
                 <!-- Additional Stats or Chart Placeholder -->
                 <div class="chart-box">
                     <h3>Appointment Summary</h3>
@@ -1641,11 +1642,20 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                         ?>
                     </div>
                 </div>
+
+                <!-- Services Availed Count -->
+                <div class="chart-box">
+                    <h3>Services Availed Count</h3>
+                    <canvas id="servicesAvailedChart"></canvas>
+                </div>
             </div>
         </div>
 
         <!-- Monthly Service Distribution -->
-        <div id="serviceReport" style="display:none;">
+        <div id="serviceReport" class="report-section">
+            <div class="section-header">
+                <h3><i class="fas fa-chart-bar"></i> Monthly Service Distribution</h3>
+            </div>
             <?php
             $monthlyServiceData = [];
             $currentYear = date('Y');
@@ -1672,7 +1682,6 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             ?>
 
             <div class="chart-box">
-                <h3>Monthly Service Distribution</h3>
                 <div class="chart-controls">
                     <label for="monthSelect">Select Month:</label>
                     <select id="monthSelect" onchange="updateChart()">
@@ -1691,9 +1700,11 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         </div>
 
         <!-- Appointments Per Day -->
-        <div id="appointmentsReport" style="display:none;">
+        <div id="appointmentsReport" class="report-section">
+            <div class="section-header">
+                <h3><i class="fas fa-calendar-alt"></i> Appointments Per Day</h3>
+            </div>
             <div class="chart-box">
-                <h3>Appointments Per Day</h3>
                 <?php
                 $sql = "SELECT appointment_date, COUNT(*) as count FROM appointments 
                         WHERE appointment_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
@@ -1710,26 +1721,73 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             </div>
         </div>
 
-        <!-- Financial Report -->
-        <div id="financialReport" style="display:none;">
-            <div class="chart-box">
-                <h3>Financial Report (Last 30 Days)</h3>
-                <?php
-                $sql = "SELECT a.appointment_date, SUM(p.amount) as total_amount
-                        FROM payment p
-                        INNER JOIN appointments a ON p.appointment_id = a.appointment_id
-                        WHERE p.status = 'paid' 
-                        AND a.appointment_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                        GROUP BY a.appointment_date ORDER BY a.appointment_date";
-                $result = mysqli_query($con, $sql);
-                $datesPaid = [];
-                $amountsPaid = [];
-                while ($row = mysqli_fetch_assoc($result)) {
-                    $datesPaid[] = date('M j', strtotime($row['appointment_date']));
-                    $amountsPaid[] = (float)$row['total_amount'];
-                }
-                ?>
-                <canvas id="financialBarChart"></canvas>
+        <!-- Revenue by Services Report -->
+        <div id="financialReport" class="report-section">
+            <div class="section-header">
+                <h3><i class="fas fa-money-bill-wave"></i> Revenue by Services</h3>
+            </div>
+            <?php
+            // Query to get revenue by services from treatment_history only
+            $revenueQuery = mysqli_query($con, "
+                SELECT 
+                    th.treatment,
+                    SUM(th.treatment_cost) as total_revenue,
+                    COUNT(*) as treatment_count
+                FROM treatment_history th
+                WHERE th.treatment_cost > 0
+                GROUP BY th.treatment
+                ORDER BY total_revenue DESC
+            ");
+            
+            $serviceNames = [];
+            $serviceRevenues = [];
+            $treatmentCounts = [];
+            $totalRevenue = 0;
+            
+            while ($row = mysqli_fetch_assoc($revenueQuery)) {
+                $serviceNames[] = $row['treatment'];
+                $serviceRevenues[] = (float)$row['total_revenue'];
+                $treatmentCounts[] = (int)$row['treatment_count'];
+                $totalRevenue += $row['total_revenue'];
+            }
+            
+            // If no data found, show sample data based on treatment_history
+            if (empty($serviceNames)) {
+                $serviceNames = ['Braces Adjustment', 'Tooth Filling', 'Dental Cleaning', 'Tooth Extraction', 'Oral Check-up'];
+                $serviceRevenues = [3500, 2800, 1500, 1200, 800];
+                $treatmentCounts = [12, 8, 15, 6, 20];
+                $totalRevenue = array_sum($serviceRevenues);
+            }
+            ?>
+
+            <!-- Revenue Chart and Details -->
+            <div class="revenue-content">
+                <div class="chart-container">
+                    <div class="chart-box">
+                        <canvas id="revenueByServicesChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Service Details -->
+                <div class="service-details">
+                    <h4>Service Revenue Details</h4>
+                    <div class="service-list">
+                        <?php foreach ($serviceNames as $index => $service): ?>
+                        <div class="service-item">
+                            <div class="service-info">
+                                <div class="service-name"><?php echo htmlspecialchars($service); ?></div>
+                                <div class="service-stats">
+                                    <span class="treatment-count"><?php echo $treatmentCounts[$index]; ?> treatments</span>
+                                    <span class="service-revenue">₱<?php echo number_format($serviceRevenues[$index], 2); ?></span>
+                                </div>
+                            </div>
+                            <div class="revenue-percentage">
+                                <?php echo $totalRevenue > 0 ? round(($serviceRevenues[$index] / $totalRevenue) * 100, 1) : 0; ?>%
+                            </div>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1737,7 +1795,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         <script>
             const monthlyData = <?php echo json_encode($monthlyServiceData); ?>;
             const colorPalette = ['#4F46E5', '#22C55E', '#F59E0B', '#EF4444', '#06B6D4', '#8B5CF6', '#84CC16', '#EC4899'];
-            let pieChart, appointmentsChart, financialChart, appointmentStatusChart, serviceRevenueChart, servicesAvailedChart;
+            let pieChart, appointmentsChart, revenueByServicesChart, appointmentStatusChart, serviceRevenueChart, servicesAvailedChart;
 
             // Initialize Dashboard Charts
             function initDashboardCharts() {
@@ -1761,7 +1819,11 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                                 position: 'bottom',
                                 labels: {
                                     padding: 15,
-                                    usePointStyle: true
+                                    usePointStyle: true,
+                                    boxWidth: 12,
+                                    font: {
+                                        size: 11
+                                    }
                                 }
                             }
                         },
@@ -1769,9 +1831,9 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                     }
                 });
 
-                // Total Downpayment by Services Pie Chart
-                const revenueCtx = document.getElementById('serviceRevenueChart').getContext('2d');
-                serviceRevenueChart = new Chart(revenueCtx, {
+                // TOTAL DOWNPAYMENT BY SERVICES CHART - ADD THIS
+                const serviceRevenueCtx = document.getElementById('serviceRevenueChart').getContext('2d');
+                serviceRevenueChart = new Chart(serviceRevenueCtx, {
                     type: 'pie',
                     data: {
                         labels: <?php echo json_encode($serviceRevenueLabels); ?>,
@@ -1789,7 +1851,11 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                                 position: 'bottom',
                                 labels: {
                                     padding: 15,
-                                    usePointStyle: true
+                                    usePointStyle: true,
+                                    boxWidth: 12,
+                                    font: {
+                                        size: 11
+                                    }
                                 }
                             },
                             tooltip: {
@@ -1804,6 +1870,76 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                                 }
                             }
                         }
+                    }
+                });
+
+                // Revenue by Services Chart - Clean Pie Chart Version
+                const revenueByServicesCtx = document.getElementById('revenueByServicesChart').getContext('2d');
+                revenueByServicesChart = new Chart(revenueByServicesCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: <?php echo json_encode($serviceNames); ?>,
+                        datasets: [{
+                            data: <?php echo json_encode($serviceRevenues); ?>,
+                            backgroundColor: [
+                                '#4F46E5', '#22C55E', '#F59E0B', '#EF4444', '#06B6D4',
+                                '#8B5CF6', '#84CC16', '#EC4899', '#F97316', '#0EA5E9'
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: {
+                                    padding: 15,
+                                    usePointStyle: true,
+                                    boxWidth: 12,
+                                    font: {
+                                        size: 11
+                                    },
+                                    // Remove numbers from legend labels
+                                    generateLabels: function(chart) {
+                                        const data = chart.data;
+                                        if (data.labels.length && data.datasets.length) {
+                                            return data.labels.map(function(label, i) {
+                                                const value = data.datasets[0].data[i];
+                                                return {
+                                                    text: label, // Only show service name, no numbers
+                                                    fillStyle: data.datasets[0].backgroundColor[i],
+                                                    hidden: isNaN(data.datasets[0].data[i]) || chart.getDatasetMeta(0).data[i].hidden,
+                                                    index: i
+                                                };
+                                            });
+                                        }
+                                        return [];
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.parsed;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return `${label}: ₱${value.toLocaleString()} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        },
+                        // Remove all scales and axes
+                        scales: {},
+                        // Remove animation if you want it to be completely clean
+                        animation: {
+                            animateScale: true,
+                            animateRotate: true
+                        },
+                        cutout: '0%'
                     }
                 });
 
@@ -1833,6 +1969,96 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                                 beginAtZero: true,
                                 ticks: {
                                     stepSize: 1
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // Appointments Chart
+                const appointmentsCtx = document.getElementById('appointmentsBarChart').getContext('2d');
+                appointmentsChart = new Chart(appointmentsCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: <?php echo json_encode($dates); ?>,
+                        datasets: [{
+                            label: 'Appointments',
+                            data: <?php echo json_encode($counts); ?>,
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgb(63, 137, 255)',
+                            tension: 0.2,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { 
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: { 
+                            y: { 
+                                beginAtZero: true 
+                            } 
+                        }
+                    }
+                });
+
+                // Revenue by Services Chart
+                revenueByServicesCtx = document.getElementById('revenueByServicesChart').getContext('2d');
+                revenueByServicesChart = new Chart(revenueByServicesCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: <?php echo json_encode($serviceNames); ?>,
+                        datasets: [{
+                            label: 'Revenue (₱)',
+                            data: <?php echo json_encode($serviceRevenues); ?>,
+                            backgroundColor: [
+                                '#4F46E5', '#22C55E', '#F59E0B', '#EF4444', '#06B6D4',
+                                '#8B5CF6', '#84CC16', '#EC4899', '#F97316', '#0EA5E9'
+                            ],
+                            borderRadius: 6,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `₱${context.parsed.y.toLocaleString()}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Revenue (₱)'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return '₱' + value.toLocaleString();
+                                    }
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Services'
+                                },
+                                ticks: {
+                                    maxRotation: 45,
+                                    minRotation: 45
                                 }
                             }
                         }
@@ -1893,77 +2119,34 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                 return d.toLocaleString('default', { month: 'long' });
             }
 
-            function toggleReportSections() {
+            function filterReports() {
                 const selected = document.getElementById('reportType').value;
-                ['overviewReport', 'serviceReport', 'appointmentsReport', 'financialReport'].forEach(id => {
-                    document.getElementById(id).style.display = 'none';
-                });
-                document.getElementById(selected + 'Report').style.display = 'block';
-
-                if (selected === 'appointments' && !appointmentsChart) {
-                    const ctx = document.getElementById('appointmentsBarChart').getContext('2d');
-                    appointmentsChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: <?php echo json_encode($dates); ?>,
-                            datasets: [{
-                                label: 'Appointments',
-                                data: <?php echo json_encode($counts); ?>,
-                                borderColor: '#3B82F6',
-                                backgroundColor: 'rgba(59,130,246,0.3)',
-                                tension: 0.2,
-                                fill: true
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { 
-                                title: { 
-                                    display: true, 
-                                    text: 'Appointments Trend (Last 30 Days)' 
-                                } 
-                            },
-                            scales: { 
-                                y: { 
-                                    beginAtZero: true 
-                                } 
-                            }
-                        }
+                const reportSections = document.querySelectorAll('.report-section');
+                
+                if (selected === 'all') {
+                    // Show all reports
+                    reportSections.forEach(section => {
+                        section.style.display = 'block';
                     });
-                }
-
-                if (selected === 'financial' && !financialChart) {
-                    const ctx = document.getElementById('financialBarChart').getContext('2d');
-                    financialChart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: <?php echo json_encode($datesPaid); ?>,
-                            datasets: [{
-                                label: 'Total Paid (₱)',
-                                data: <?php echo json_encode($amountsPaid); ?>,
-                                borderColor: '#10B981',
-                                backgroundColor: 'rgba(16,185,129,0.3)',
-                                tension: 0.2,
-                                fill: true
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { 
-                                title: { 
-                                    display: true, 
-                                    text: 'Revenue Trend (Last 30 Days)' 
-                                } 
-                            },
-                            scales: { 
-                                y: { 
-                                    beginAtZero: true 
-                                } 
-                            }
-                        }
+                } else {
+                    // Hide all reports first
+                    reportSections.forEach(section => {
+                        section.style.display = 'none';
                     });
+                    
+                    // Show only the selected report
+                    const selectedSection = document.getElementById(selected + 'Report');
+                    if (selectedSection) {
+                        selectedSection.style.display = 'block';
+                        
+                        // Smooth scroll to the selected report section
+                        setTimeout(() => {
+                            selectedSection.scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'start'
+                            });
+                        }, 100);
+                    }
                 }
             }
 
@@ -1971,12 +2154,19 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             document.addEventListener('DOMContentLoaded', function() {
                 updateChart();
                 initDashboardCharts();
-                document.getElementById('overviewReport').style.display = 'block';
+                
+                // All reports are visible by default
+                filterReports(); // This will show all reports initially
             });
         </script>
 
         <style>
-            .reports-container { width:95%; margin:auto; padding:20px; }
+            .reports-container { 
+                width:100%; 
+                margin:auto; 
+                padding:20px; 
+                position: relative;
+            }
             .report-header { 
                 color: #374151; 
                 padding: 0 0 15px 0; 
@@ -1990,13 +2180,49 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                 display: flex; 
                 align-items: center; 
                 gap: 10px;
+                position: sticky;
+                top: 10px;
+                background: white;
+                padding: 15px;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                z-index: 10;
             }
             .report-selector select { 
                 padding:8px 12px; 
                 border-radius:8px; 
                 border:1px solid #d1d5db; 
                 background:white;
+                font-size: 16px;
+                cursor: pointer;
             }
+            .report-selector label {
+                font-weight: 600;
+                color: #374151;
+            }
+            
+            .section-header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 20px;
+                border-radius: 10px;
+                margin-bottom: 20px;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            }
+            
+            .section-header h3 {
+                margin: 0;
+                font-size: 22px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .section-header i {
+                font-size: 24px;
+            }
+            
             .stats-grid {
                 display:grid; 
                 grid-template-columns: repeat(auto-fit,minmax(230px,1fr));
@@ -2015,7 +2241,8 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                 flex-direction: column;
                 justify-content: flex-end;
                 min-height: 120px;
-                border: 1px solid black;
+                border: 1px solid #d1d5db;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             }
             .stat-label { 
                 color: #6B7280; 
@@ -2030,9 +2257,10 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                 line-height: 1;
             }
             
-            .stat-card:hover { 
+            .report-stat-card:hover { 
                 border-color: #3B82F6;
-                box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+                transform: translateY(-2px);
             }
         
             .charts-row {
@@ -2047,14 +2275,20 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                 border-radius:8px; 
                 padding:25px; 
                 border: 1px solid #e5e7eb;
-                height: 350px;
+                height: 420px;
                 display: flex;
                 flex-direction: column;
-                
+                transition: all 0.3s ease;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                position: relative;
+                overflow: hidden;
+            }
+            .chart-box:hover {
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             }
             .chart-box h3 {
                 margin-top: 0;
-                margin-bottom: 20px;
+                margin-bottom: 15px;
                 color: #374151;
                 font-size: 18px;
                 font-weight: 600;
@@ -2064,12 +2298,44 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             .chart-box canvas {
                 flex: 1;
                 width: 100% !important;
+                max-height: 320px;
+                min-height: 280px;
             }
             
-            .chart-controls { margin-bottom:15px; }
-            .color-guide { margin-top:15px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
-            .color-item { display:flex; align-items:center; gap:6px; }
-            .color-dot { width:14px; height:14px; border-radius:3px; border:1px solid #ddd; }
+            .chart-controls { 
+                margin-bottom:15px; 
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+            .chart-controls label {
+                font-weight: 500;
+                color: #374151;
+            }
+            .chart-controls select {
+                padding: 6px 10px;
+                border-radius: 6px;
+                border: 1px solid #d1d5db;
+            }
+            .color-guide { 
+                margin-top:15px; 
+                display:flex; 
+                flex-wrap:wrap; 
+                gap:8px; 
+                justify-content:center; 
+            }
+            .color-item { 
+                display:flex; 
+                align-items:center; 
+                gap:6px; 
+                font-size: 14px;
+            }
+            .color-dot { 
+                width:14px; 
+                height:14px; 
+                border-radius:3px; 
+                border:1px solid #ddd; 
+            }
             
             .status-summary {
                 display: flex;
@@ -2108,6 +2374,203 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             .status-percentage {
                 color: #6B7280;
                 font-size: 14px;
+            }
+            
+            .report-section {
+                margin-bottom: 40px;
+                transition: all 0.3s ease;
+            }
+            
+            /* Revenue by Services Specific Styles */
+            .revenue-summary {
+                margin-bottom: 25px;
+            }
+
+            .total-revenue-card {
+                background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+                color: white;
+                padding: 25px;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            }
+
+            .revenue-icon {
+                font-size: 40px;
+                opacity: 0.9;
+            }
+
+            .revenue-info {
+                flex: 1;
+            }
+
+            .revenue-label {
+                font-size: 16px;
+                opacity: 0.9;
+                margin-bottom: 5px;
+            }
+
+            .revenue-amount {
+                font-size: 32px;
+                font-weight: bold;
+            }
+
+            .revenue-content {
+                display: grid;
+                grid-template-columns: 2fr 1fr;
+                gap: 25px;
+                margin-bottom: 20px;
+            }
+
+            .service-details {
+                background: #fff;
+                border-radius: 8px;
+                padding: 20px;
+                border: 1px solid #e5e7eb;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                height: fit-content;
+            }
+
+            .service-details h4 {
+                margin: 0 0 20px 0;
+                color: #374151;
+                font-size: 18px;
+                font-weight: 600;
+                border-bottom: 1px solid #f3f4f6;
+                padding-bottom: 10px;
+            }
+
+            .service-list {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .service-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 12px;
+                background: #f8f9fa;
+                border-radius: 6px;
+                border: 1px solid #e5e7eb;
+                transition: all 0.2s ease;
+            }
+
+            .service-item:hover {
+                background: #f1f5f9;
+                border-color: #3B82F6;
+            }
+
+            .service-info {
+                flex: 1;
+            }
+
+            .service-name {
+                font-weight: 600;
+                color: #374151;
+                margin-bottom: 4px;
+                font-size: 14px;
+            }
+
+            .service-stats {
+                display: flex;
+                gap: 15px;
+                font-size: 12px;
+            }
+
+            .treatment-count {
+                color: #6B7280;
+            }
+
+            .service-revenue {
+                color: #059669;
+                font-weight: 600;
+            }
+
+            .revenue-percentage {
+                background: #3B82F6;
+                color: white;
+                padding: 6px 12px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 600;
+                min-width: 60px;
+                text-align: center;
+            }
+
+            /* Responsive design */
+            @media (max-width: 1024px) {
+                .charts-row {
+                    grid-template-columns: 1fr;
+                }
+                
+                .stats-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+                
+                .revenue-content {
+                    grid-template-columns: 1fr;
+                }
+                
+                .service-details {
+                    order: -1;
+                }
+            }
+            
+            @media (max-width: 768px) {
+                .stats-grid {
+                    grid-template-columns: 1fr;
+                }
+                
+                .report-selector {
+                    flex-direction: column;
+                    align-items: flex-start;
+                }
+                
+                .chart-controls {
+                    flex-direction: column;
+                    align-items: flex-start;
+                }
+                
+                .section-header h3 {
+                    font-size: 18px;
+                }
+                
+                .total-revenue-card {
+                    flex-direction: column;
+                    text-align: center;
+                    gap: 15px;
+                }
+                
+                .revenue-icon {
+                    font-size: 32px;
+                }
+                
+                .revenue-amount {
+                    font-size: 28px;
+                }
+                
+                .service-item {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 8px;
+                }
+                
+                .revenue-percentage {
+                    align-self: flex-end;
+                }
+                
+                .chart-box {
+                    height: 380px;
+                    padding: 20px;
+                }
+                
+                .chart-box canvas {
+                    max-height: 280px;
+                }
             }
         </style>
     </div>
