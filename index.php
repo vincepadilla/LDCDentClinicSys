@@ -155,7 +155,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                     <button class="service-book-btn">Book Appointment</button>
                 </div>
 
-                <div class="service-card" data-service="S004">
+                <div class="service-card service-card-centered" data-service="S004">
                     <div class="service-icon">
                         <i class="fa-solid fa-face-grimace"></i>
                     </div>
@@ -164,7 +164,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                     <button class="service-book-btn">Book Appointment</button>
                 </div>
 
-                <div class="service-card" data-service="S005">
+                <div class="service-card service-card-centered" data-service="S005">
                     <div class="service-icon">
                         <i class="fas fa-teeth-open"></i>
                     </div>

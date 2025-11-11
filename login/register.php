@@ -9,94 +9,107 @@ require '../PhpMailer/src/Exception.php';
 require '../PhpMailer/src/PHPMailer.php';
 require '../PhpMailer/src/SMTP.php';
 
-if (isset($_POST['submit'])) {
-    // Sanitize input
-    $username = mysqli_real_escape_string($con, trim($_POST['username']));
-    $fname = mysqli_real_escape_string($con, trim($_POST['fname']));
-    $lname = mysqli_real_escape_string($con, trim($_POST['lname']));
-    $email = mysqli_real_escape_string($con, trim($_POST['email']));
-    $phone = mysqli_real_escape_string($con, trim($_POST['phone']));
-    $birthdate = mysqli_real_escape_string($con, trim($_POST['birthdate']));
-    $gender = mysqli_real_escape_string($con, trim($_POST['gender']));
-    $address = mysqli_real_escape_string($con, trim($_POST['address']));
-    $password = mysqli_real_escape_string($con, trim($_POST['password']));
+$error = '';
+$success = '';
+$username = '';
+$fname = '';
+$lname = '';
+$email = '';
+$phone = '';
+$birthdate = '';
+$gender = '';
+$address = '';
+$password = '';
+$confirm_password = '';
+$terms_checked = false;
 
-    if (empty($username) || empty($fname) || empty($lname) || empty($email) || empty($phone) || empty($password) || empty($birthdate) || empty($gender) || empty($address)) {
-        echo "<script>alert('All fields are required.'); window.location.href='register.php';</script>";
-        exit();
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = trim($_POST['username'] ?? '');
+    $fname = trim($_POST['fname'] ?? '');
+    $lname = trim($_POST['lname'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $birthdate = trim($_POST['birthdate'] ?? '');
+    $gender = trim($_POST['gender'] ?? '');
+    $address = trim($_POST['address'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $confirm_password = $_POST['confirm_password'] ?? '';
+    $terms_checked = isset($_POST['terms']);
+
+    if (
+        empty($username) || empty($fname) || empty($lname) || empty($email) ||
+        empty($phone) || empty($password) || empty($confirm_password) ||
+        empty($birthdate) || empty($gender) || empty($address) || !$terms_checked
+    ) {
+        $error = 'All fields are required.';
+    } elseif (strlen($password) < 6) {
+        $error = 'Password must be at least 6 characters long.';
+    } elseif ($password !== $confirm_password) {
+        $error = 'Password and confirmation do not match.';
+    } elseif (!preg_match('/^\d{11}$/', $phone)) {
+        $error = 'Invalid phone number. It must be exactly 11 digits.';
     }
 
-    // Password length check
-    if (strlen($password) < 6) {
-        echo "<script>alert('Password must be at least 6 characters long.'); window.location.href='register.php';</script>";
-        exit();
+    if (empty($error)) {
+        $emailEscaped = mysqli_real_escape_string($con, $email);
+        $check_email = mysqli_query($con, "SELECT email FROM user_account WHERE email='$emailEscaped'");
+        if ($check_email && mysqli_num_rows($check_email) > 0) {
+            $error = 'The email is already registered.';
+        }
     }
 
-    // Validate phone format (exactly 11 digits)
-    if (!preg_match('/^\d{11}$/', $phone)) {
-        echo "<script>alert('Invalid phone number. It must be exactly 11 digits.'); window.location.href='register.php';</script>";
-        exit();
-    }
+    if (empty($error)) {
+        $result = mysqli_query($con, "SELECT user_id FROM user_account ORDER BY user_id DESC LIMIT 1");
+        if ($result && mysqli_num_rows($result) > 0) {
+            $row = mysqli_fetch_assoc($result);
+            $lastID = intval(substr($row['user_id'], 1)) + 1;
+            $user_id = "U" . str_pad($lastID, 4, "0", STR_PAD_LEFT);
+        } else {
+            $user_id = "U0001";
+        }
 
-    // Check for existing email
-    $check_email = mysqli_query($con, "SELECT email FROM user_account WHERE email='$email'");
-    if (mysqli_num_rows($check_email) > 0) {
-        echo "<script>alert('The email is already registered.'); window.location.href='register.php';</script>";
-        exit();
-    }
+        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+        $otp = rand(100000, 999999);
 
-    // Generate unique alphanumeric user_id (e.g., U0001)
-    $result = mysqli_query($con, "SELECT user_id FROM user_account ORDER BY user_id DESC LIMIT 1");
-    if (mysqli_num_rows($result) > 0) {
-        $row = mysqli_fetch_assoc($result);
-        $lastID = intval(substr($row['user_id'], 1)) + 1;
-        $user_id = "U" . str_pad($lastID, 4, "0", STR_PAD_LEFT);
-    } else {
-        $user_id = "U0001";
-    }
+        $_SESSION['temp_user'] = [
+            'user_id' => $user_id,
+            'username' => $username,
+            'fname' => $fname,
+            'lname' => $lname,
+            'birthdate' => $birthdate,
+            'gender' => $gender,
+            'address' => $address,
+            'email' => $email,
+            'phone' => $phone,
+            'password' => $hashed_password
+        ];
+        $_SESSION['otp'] = $otp;
+        $_SESSION['otp_expiry'] = time() + 600;
 
-    // Hash password
-    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+        $mail = new PHPMailer(true);
+        try {
+            $mail->isSMTP();
+            $mail->Host = 'smtp.gmail.com';
+            $mail->SMTPAuth = true;
+            $mail->Username = 'padillavincehenrick@gmail.com';
+            $mail->Password = 'glxd csoa ispj bvjg';
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port = 587;
 
-    // Generate OTP
-    $otp = rand(100000, 999999);
-    $_SESSION['temp_user'] = [
-        'user_id' => $user_id,
-        'username' => $username,
-        'fname' => $fname,
-        'lname' => $lname,
-        'birthdate' => $_POST['birthdate'] ?? null,
-        'gender' => $_POST['gender'] ?? null,
-        'address' => $_POST['address'] ?? null,
-        'email' => $email,
-        'phone' => $phone,
-        'password' => $hashed_password
-    ];
-    $_SESSION['otp'] = $otp;
-    $_SESSION['otp_expiry'] = time() + 600; 
+            $mail->setFrom('padillavincehenrick@gmail.com', 'Landero Dental Clinic');
+            $mail->addAddress($email, $fname . ' ' . $lname);
+            $mail->Subject = 'OTP Verification';
+            $mail->Body = "Hello $fname,\n\nYour OTP for account verification is: $otp\n\nThis code will expire in 10 minutes.\n\nThank you!";
 
-    // Send OTP via PHPMailer
-    $mail = new PHPMailer(true);
-    try {
-        $mail->isSMTP();
-        $mail->Host = 'smtp.gmail.com';
-        $mail->SMTPAuth = true;
-        $mail->Username = 'padillavincehenrick@gmail.com'; 
-        $mail->Password = 'glxd csoa ispj bvjg'; 
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port = 587;
+            $mail->send();
 
-        $mail->setFrom('padillavincehenrick@gmail.com', 'Landero Dental Clinic');
-        $mail->addAddress($email, $fname . ' ' . $lname);
-        $mail->Subject = 'OTP Verification';
-        $mail->Body = "Hello $fname,\n\nYour OTP for account verification is: $otp\n\nThis code will expire in 10 minutes.\n\nThank you!";
-
-        $mail->send();
-
-        header("Location: otpVerification.php");
-        exit();
-    } catch (Exception $e) {
-        echo "<script>alert('Mailer Error: {$mail->ErrorInfo}'); window.location.href='register.php';</script>";
+            header("Location: otpVerification.php");
+            exit();
+        } catch (Exception $e) {
+            unset($_SESSION['temp_user'], $_SESSION['otp'], $_SESSION['otp_expiry']);
+            error_log('Mailer Error: ' . $mail->ErrorInfo);
+            $error = 'Mailer Error: Unable to send OTP at this time. Please try again.';
+        }
     }
 }
 ?>
@@ -112,7 +125,15 @@ if (isset($_POST['submit'])) {
     <link rel="stylesheet" href="registerstyle.css?v=<?php echo time(); ?>">
 </head>
 <body>
+    
     <div class="login-container">
+        <!-- Back to Home Button -->
+        <div class="back-home">
+                <a href="../index.php" class="back-home-btn">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Home
+                </a>
+        </div>
         <!-- LEFT SIDE -->
         <div class="login-left">
             <div class="overlay"></div>
@@ -145,14 +166,14 @@ if (isset($_POST['submit'])) {
                     <p>Create your account to get started</p>
                 </div>
 
-                <?php if (isset($error)) { ?>
+                <?php if (!empty($error)) { ?>
                     <div class="error-message compact-message">
                         <i class="fas fa-exclamation-circle"></i>
                         <span><?php echo $error; ?></span>
                     </div>
                 <?php } ?>
                 
-                <?php if (isset($success)) { ?>
+                <?php if (!empty($success)) { ?>
                     <div class="success-message compact-message">
                         <i class="fas fa-check-circle"></i>
                         <span><?php echo $success; ?></span>
@@ -165,7 +186,7 @@ if (isset($_POST['submit'])) {
                             <label for="fname">First Name</label>
                             <div class="input-field compact-input">
                                 <i class="fas fa-user"></i>
-                                <input type="text" name="fname" id="fname" placeholder="First name" required>
+                                <input type="text" name="fname" id="fname" placeholder="First name" value="<?php echo htmlspecialchars($fname, ENT_QUOTES); ?>" required>
                             </div>
                         </div>
                         
@@ -173,7 +194,7 @@ if (isset($_POST['submit'])) {
                             <label for="lname">Last Name</label>
                             <div class="input-field compact-input">
                                 <i class="fas fa-user"></i>
-                                <input type="text" name="lname" id="lname" placeholder="Last name" required>
+                                <input type="text" name="lname" id="lname" placeholder="Last name" value="<?php echo htmlspecialchars($lname, ENT_QUOTES); ?>" required>
                             </div>
                         </div>
                     </div>
@@ -182,7 +203,7 @@ if (isset($_POST['submit'])) {
                         <label for="username">Username</label>
                         <div class="input-field compact-input">
                             <i class="fas fa-at"></i>
-                            <input type="text" name="username" id="username" placeholder="Choose username" required>
+                            <input type="text" name="username" id="username" placeholder="Choose username" value="<?php echo htmlspecialchars($username, ENT_QUOTES); ?>" required>
                         </div>
                     </div>
 
@@ -190,7 +211,7 @@ if (isset($_POST['submit'])) {
                         <label for="email">Email</label>
                         <div class="input-field compact-input">
                             <i class="fas fa-envelope"></i>
-                            <input type="email" name="email" id="email" placeholder="Enter your email" required>
+                            <input type="email" name="email" id="email" placeholder="Enter your email" value="<?php echo htmlspecialchars($email, ENT_QUOTES); ?>" required>
                         </div>
                     </div>
 
@@ -198,7 +219,7 @@ if (isset($_POST['submit'])) {
                         <label for="phone">Phone Number</label>
                         <div class="input-field compact-input">
                             <i class="fas fa-phone"></i>
-                            <input type="text" name="phone" id="phone" placeholder="11-digit phone number" maxlength="11" pattern="\d{11}" required>
+                            <input type="text" name="phone" id="phone" placeholder="11-digit phone number" maxlength="11" pattern="\d{11}" value="<?php echo htmlspecialchars($phone, ENT_QUOTES); ?>" required>
                         </div>
                     </div>
 
@@ -208,7 +229,7 @@ if (isset($_POST['submit'])) {
                             <label for="birthdate">Birthdate</label>
                             <div class="input-field compact-input">
                                 <i class="fas fa-calendar"></i>
-                                <input type="date" name="birthdate" id="birthdate" required>
+                                <input type="date" name="birthdate" id="birthdate" value="<?php echo htmlspecialchars($birthdate, ENT_QUOTES); ?>" required>
                             </div>
                         </div>
                         
@@ -217,11 +238,11 @@ if (isset($_POST['submit'])) {
                             <div class="input-field compact-input">
                                 <i class="fas fa-venus-mars"></i>
                                 <select name="gender" id="gender" required>
-                                    <option value="" disabled selected>Select gender</option>
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                    <option value="other">Other</option>
-                                    <option value="prefer_not_to_say">Prefer not to say</option>
+                                    <option value="" disabled <?php echo $gender === '' ? 'selected' : ''; ?>>Select gender</option>
+                                    <option value="male" <?php echo $gender === 'male' ? 'selected' : ''; ?>>Male</option>
+                                    <option value="female" <?php echo $gender === 'female' ? 'selected' : ''; ?>>Female</option>
+                                    <option value="other" <?php echo $gender === 'other' ? 'selected' : ''; ?>>Other</option>
+                                    <option value="prefer_not_to_say" <?php echo $gender === 'prefer_not_to_say' ? 'selected' : ''; ?>>Prefer not to say</option>
                                 </select>
                             </div>
                         </div>
@@ -231,7 +252,7 @@ if (isset($_POST['submit'])) {
                         <label for="address">Address</label>
                         <div class="input-field compact-input">
                             <i class="fas fa-home"></i>
-                            <input type="text" name="address" id="address" placeholder="Enter your complete address" required>
+                            <input type="text" name="address" id="address" placeholder="Enter your complete address" value="<?php echo htmlspecialchars($address, ENT_QUOTES); ?>" required>
                         </div>
                     </div>
 
@@ -240,7 +261,7 @@ if (isset($_POST['submit'])) {
                             <label for="password">Password</label>
                             <div class="input-field compact-input">
                                 <i class="fas fa-lock"></i>
-                                <input type="password" name="password" id="password" placeholder="Create password" required>
+                                <input type="password" name="password" id="password" placeholder="Create password" value="<?php echo htmlspecialchars($password, ENT_QUOTES); ?>" required>
                                 <button type="button" class="toggle-password compact-toggle" id="togglePassword"></button>
                             </div>
                         </div>
@@ -249,14 +270,14 @@ if (isset($_POST['submit'])) {
                             <label for="confirm_password">Confirm Password</label>
                             <div class="input-field compact-input">
                                 <i class="fas fa-lock"></i>
-                                <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm password" required>
+                                <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm password" value="<?php echo htmlspecialchars($confirm_password, ENT_QUOTES); ?>" required>
                                 <button type="button" class="toggle-password compact-toggle" id="toggleConfirmPassword"></button>
                             </div>
                         </div>
                     </div>
 
                     <div class="terms-agreement compact-terms">
-                        <input type="checkbox" id="terms" name="terms" required>
+                        <input type="checkbox" id="terms" name="terms" <?php echo $terms_checked ? 'checked' : ''; ?> required>
                         <label for="terms">I agree to the <a href="#" class="terms-link">Terms</a> and <a href="#" class="terms-link">Privacy Policy</a></label>
                     </div>
 

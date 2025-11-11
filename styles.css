@@ -277,9 +277,61 @@ header {
 
 .services-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(6, 1fr);
     gap: 30px;
     margin-bottom: 50px;
+}
+
+/* First 3 service cards span 2 columns each (total 6 columns) */
+.service-card:nth-child(1),
+.service-card:nth-child(2),
+.service-card:nth-child(3) {
+    grid-column: span 2;
+}
+
+/* Center the last two service cards - they span 2 columns each starting from column 2 and 4 */
+.service-card:nth-child(4) {
+    grid-column: 2 / span 2;
+}
+
+.service-card:nth-child(5) {
+    grid-column: 4 / span 2;
+}
+
+/* Responsive adjustments for tablets */
+@media (max-width: 1024px) {
+    .services-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .service-card:nth-child(1),
+    .service-card:nth-child(2),
+    .service-card:nth-child(3) {
+        grid-column: span 2;
+    }
+    
+    .service-card:nth-child(4) {
+        grid-column: 1 / span 2;
+    }
+    
+    .service-card:nth-child(5) {
+        grid-column: 3 / span 2;
+    }
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+    .services-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .service-card:nth-child(1),
+    .service-card:nth-child(2),
+    .service-card:nth-child(3),
+    .service-card:nth-child(4),
+    .service-card:nth-child(5) {
+        grid-column: span 1;
+    }
 }
 
 .service-card {
