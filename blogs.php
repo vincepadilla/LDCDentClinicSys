@@ -76,11 +76,11 @@ Content: [text]";
         $newId = "B001";
     }
 
-    $stmt = mysqli_prepare($con, "INSERT INTO dental_blogs (title, content, published_at, status) VALUES (?, ?, NOW(), 'published')");
+    $stmt = mysqli_prepare($con, "INSERT INTO dental_blogs (blog_id, title, content, published_at, status) VALUES (?, ?, ?, NOW(), 'published')");
     if ($stmt) {
-        mysqli_stmt_bind_param($stmt, "ss", $title, $content);
-        mysqli_stmt_execute($stmt);
-        mysqli_stmt_close($stmt);
+    mysqli_stmt_bind_param($stmt, "sss", $newId, $title, $content);
+    mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
     }
 
     // keep only 10 recent blogs
