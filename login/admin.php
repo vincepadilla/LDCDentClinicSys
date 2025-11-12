@@ -897,7 +897,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                             <td>₱<?php echo number_format($row['price'], 2); ?></td>
                             <td>
                                 <div class="action-btns">
-                                    <button class="action-btn btn-primary-edit" title="Edit" onclick="editService('<?php echo $row['service_id']; ?>')">
+                                    <button class="action-btn btn-primary" title="Edit" onclick="editService('<?php echo $row['service_id']; ?>')">
                                         <i class="fas fa-edit"></i>
                                     </button>
 
