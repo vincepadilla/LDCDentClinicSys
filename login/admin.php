@@ -1478,12 +1478,12 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 
 <!-- Reports Section -->
 <div id="reports" class="main-content" style="display:none;">
+
+    <?php include("chatreport.php")?>
     <div class="container reports-container">
         <h2 class="report-header">
             <i class="fa-solid fa-square-poll-vertical"></i> REPORTS & ANALYTICS
         </h2>
-
-        <?php include 'chatreport.php'; ?>
 
         <!-- Report Selector -->
         <div class="report-selector">
