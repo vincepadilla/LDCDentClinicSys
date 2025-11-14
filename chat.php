@@ -687,79 +687,125 @@ Please bring your insurance card to your appointment. We also offer flexible pay
       if (indicator) indicator.remove();
     }
 
-    function processMessage(message) {
-      // Check if we have a predefined response
+    // Replace the existing processMessage function with this new version:
+  function processMessage(message) {
+      // Check if we have a predefined response first
       const response = predefinedResponses[message];
       
-      setTimeout(() => {
-        removeTypingIndicator();
-        
-        if (response) {
-          addMessage(response, 'bot');
-        } else {
-          // For unknown questions, provide a generic response
-          addMessage(`I'm not sure I understand your question about "${message}". You can ask me about:
-          
-• Our dental services
-• Booking appointments  
-• Clinic hours and location
-• Insurance and pricing
-• Or any other dental concerns
+      if (response) {
+          setTimeout(() => {
+              removeTypingIndicator();
+              addMessage(response, 'bot');
+              addFollowUpQuestions();
+          }, 1000);
+      } else {
+          // Send to AI API for processing
+          sendToAI(message);
+      }
+  }
 
-How else can I help you today?`, 'bot');
-        }
-        
-        // Add follow-up questions
-        setTimeout(() => {
+  // New function to handle AI API calls
+  function sendToAI(message) {
+      // Get chat history for context
+      const chatHistory = getChatHistory();
+      
+      fetch('chat_api.php', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+              message: message,
+              history: chatHistory
+          })
+      })
+      .then(response => {
+          if (!response.ok) {
+              throw new Error('Network response was not ok');
+          }
+          return response.json();
+      })
+      .then(data => {
+          removeTypingIndicator();
+          
+          if (data.answer) {
+              addMessage(data.answer, 'bot');
+          } else {
+              addMessage("I'm sorry, I didn't get a response. Please try again.", 'bot');
+          }
+          
+          addFollowUpQuestions();
+      })
+      .catch(error => {
+          console.error('Error:', error);
+          removeTypingIndicator();
+          addMessage("I'm having trouble connecting right now. You can ask me about our services, hours, location, or call us directly at (123) 456-7890.", 'bot');
+          addFollowUpQuestions();
+      });
+  }
+
+  // Helper function to get chat history for AI context
+  function getChatHistory() {
+      const messages = chatBox.querySelectorAll('.chat-message');
+      const history = [];
+      
+      messages.forEach(message => {
+          if (message.classList.contains('user-message')) {
+              history.push({
+                  role: 'user',
+                  parts: [{ text: message.textContent.trim() }]
+              });
+          } else if (message.classList.contains('bot-message') && !message.querySelector('.quick-questions')) {
+              // Only add bot messages that aren't just quick questions
+              const textContent = message.textContent.trim();
+              if (textContent && !textContent.includes('Hello! 👋')) {
+                  history.push({
+                      role: 'model',
+                      parts: [{ text: textContent }]
+                  });
+              }
+          }
+      });
+      
+      return history;
+  }
+
+  // Helper function to add follow-up questions
+  function addFollowUpQuestions() {
+      setTimeout(() => {
           const followUpQuestions = document.createElement('div');
           followUpQuestions.classList.add('quick-questions');
           followUpQuestions.innerHTML = `
-            <button class="quick-question-btn" data-question="What services do you offer?">
-              <i class="fas fa-teeth"></i> Services
-            </button>
-            <button class="quick-question-btn" data-question="How do I book an appointment?">
-              <i class="fas fa-calendar-plus"></i> Book Now
-            </button>
-            <button class="quick-question-btn" data-question="What are your opening hours?">
-              <i class="fas fa-clock"></i> Hours
-            </button>
-            <button class="quick-question-btn" data-question="Anything else I should know?">
-              <i class="fas fa-question-circle"></i> More Info
-            </button>
+              <button class="quick-question-btn" data-question="What services do you offer?">
+                  <i class="fas fa-teeth"></i> Services
+              </button>
+              <button class="quick-question-btn" data-question="How do I book an appointment?">
+                  <i class="fas fa-calendar-plus"></i> Book Now
+              </button>
+              <button class="quick-question-btn" data-question="What are your opening hours?">
+                  <i class="fas fa-clock"></i> Hours
+              </button>
+              <button class="quick-question-btn" data-question="Anything else I should know?">
+                  <i class="fas fa-question-circle"></i> More Info
+              </button>
           `;
           
           // Add to the last bot message
           const lastBotMessage = document.querySelector('.bot-message:last-child');
           if (lastBotMessage) {
-            lastBotMessage.appendChild(followUpQuestions);
-            
-            // Re-attach event listeners
-            lastBotMessage.querySelectorAll('.quick-question-btn').forEach(btn => {
-              btn.addEventListener('click', () => {
-                const question = btn.getAttribute('data-question');
-                userInput.value = question;
-                chatForm.dispatchEvent(new Event('submit'));
+              lastBotMessage.appendChild(followUpQuestions);
+              
+              // Re-attach event listeners
+              lastBotMessage.querySelectorAll('.quick-question-btn').forEach(btn => {
+                  btn.addEventListener('click', () => {
+                      const question = btn.getAttribute('data-question');
+                      userInput.value = question;
+                      chatForm.dispatchEvent(new Event('submit'));
+                  });
               });
-            });
           }
-        }, 300);
-      }, 1000);
-    }
-
-    // Allow Enter key to send message (but Shift+Enter for new line)
-    userInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        chatForm.dispatchEvent(new Event('submit'));
-      }
-    });
-
-    // Auto-focus on input when chat opens
-    document.addEventListener('click', (e) => {
-      if (e.target === chatToggle || chatToggle.contains(e.target)) {
-        setTimeout(() => userInput.focus(), 300);
-      }
-    });
+      }, 300);
+  }
   </script>
 </body>
 </html>

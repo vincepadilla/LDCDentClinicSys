@@ -626,13 +626,6 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                     </select>
                 </div>
                 
-                <button class="btn btn-primary" onclick="openAddBlockModal()">
-                    <i class="fa-solid fa-ban"></i> Block Time Slots
-                </button>
-                
-                <button class="btn btn-success" onclick="openAddAvailabilityModal()">
-                    <i class="fa-solid fa-calendar-plus"></i> Add Special Availability
-                </button>
             </div>
 
             <!-- Weekly Schedule View -->
@@ -742,120 +735,6 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                     </table>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Block Time Slots Modal -->
-    <div id="blockTimeModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <h3><i class="fa-solid fa-ban"></i> Block Time Slots</h3>
-            <form id="blockTimeForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="blockDentist">Dentist:</label>
-                        <select id="blockDentist" name="dentist_id" required>
-                            <option value="">Select Dentist</option>
-                            <?php
-                            $dentistsResult = mysqli_query($con, $dentistsQuery);
-                            while ($dentist = mysqli_fetch_assoc($dentistsResult)) {
-                                echo "<option value='{$dentist['team_id']}'>Dr. {$dentist['first_name']} {$dentist['last_name']}</option>";
-                            }
-                            ?>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="blockDate">Date:</label>
-                        <input type="date" id="blockDate" name="block_date" required min="<?= date('Y-m-d') ?>">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Time Slots to Block:</label>
-                    <div class="time-slots-checkboxes">
-                        <?php foreach ($timeSlots as $slotKey => $slotTime): ?>
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="time_slots[]" value="<?= $slotKey ?>">
-                                <span class="checkmark"></span>
-                                <?= $slotTime ?>
-                            </label>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="blockReason">Reason:</label>
-                    <select id="blockReason" name="reason" required>
-                        <option value="">Select Reason</option>
-                        <option value="Vacation">Vacation</option>
-                        <option value="Training">Training</option>
-                        <option value="Emergency">Emergency</option>
-                        <option value="Personal">Personal</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="customReason">Custom Reason (if Other):</label>
-                    <input type="text" id="customReason" name="custom_reason" placeholder="Enter custom reason">
-                </div>
-
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-danger">Block Selected Slots</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeBlockModal()">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Add Special Availability Modal -->
-    <div id="addAvailabilityModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <h3><i class="fa-solid fa-calendar-plus"></i> Add Special Availability</h3>
-            <form id="addAvailabilityForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="availDentist">Dentist:</label>
-                        <select id="availDentist" name="dentist_id" required>
-                            <option value="">Select Dentist</option>
-                            <?php
-                            $dentistsResult = mysqli_query($con, $dentistsQuery);
-                            while ($dentist = mysqli_fetch_assoc($dentistsResult)) {
-                                echo "<option value='{$dentist['team_id']}'>Dr. {$dentist['first_name']} {$dentist['last_name']}</option>";
-                            }
-                            ?>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="availDate">Date:</label>
-                        <input type="date" id="availDate" name="avail_date" required min="<?= date('Y-m-d') ?>">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Available Time Slots:</label>
-                    <div class="time-slots-checkboxes">
-                        <?php foreach ($timeSlots as $slotKey => $slotTime): ?>
-                            <label class="checkbox-label">
-                                <input type="checkbox" name="time_slots[]" value="<?= $slotKey ?>">
-                                <span class="checkmark"></span>
-                                <?= $slotTime ?>
-                            </label>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="availNotes">Notes:</label>
-                    <textarea id="availNotes" name="notes" placeholder="Any special notes about this availability..."></textarea>
-                </div>
-
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-success">Add Availability</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeAvailabilityModal()">Cancel</button>
-                </div>
-            </form>
         </div>
     </div>
 
@@ -1479,7 +1358,6 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 <!-- Reports Section -->
 <div id="reports" class="main-content" style="display:none;">
 
-    <?php include("chatreport.php")?>
     <div class="container reports-container">
         <h2 class="report-header">
             <i class="fa-solid fa-square-poll-vertical"></i> REPORTS & ANALYTICS
