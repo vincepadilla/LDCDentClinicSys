@@ -910,7 +910,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                                         <i class="fa-solid fa-box-archive"></i>
                                     </button>
 
-                                    <button class="action-btn btn-gray" title="See More" onclick="seeTreatmentHistory('<?php echo $row['patient_id']; ?>')">
+                                    <button class="action-btn btn-gray" title="See More" onclick="seeMoreDetails('<?php echo $row['patient_id']; ?>')">
                                         <i class="fa-solid fa-circle-info"></i>
                                     </button>
                                 </div>
@@ -2516,14 +2516,118 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
     }
     
     // See More Patient Modal
-    function seeTreatmentHistory(patientId) {
-        const modal = document.getElementById("treatmentHistoryModal");
+    function seeMoreDetails(patientId) {
+    const modal = document.getElementById("treatmentHistoryModal");
+    const tbody = document.getElementById("treatmentHistoryBody");
+    
+    // Clear table first and show loading
+    tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Loading treatment history...</td></tr>";
+    
+    // Create tabs for different sections
+    const tabContent = `
+        <div class="modal-tabs">
+            <button class="tab-button active" onclick="openTab(event, 'treatment-tab')">Treatment History</button>
+            <button class="tab-button" onclick="openTab(event, 'appointment-tab')">Appointment History</button>
+            <button class="tab-button" onclick="openTab(event, 'transaction-tab')">Last Transaction</button>
+        </div>
+        
+        <div id="treatment-tab" class="tab-content active">
+            <h3>Treatment History</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Treatment</th>
+                            <th>Prescription</th>
+                            <th>Notes</th>
+                            <th>Cost</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="treatmentHistoryBody"></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="appointment-tab" class="tab-content">
+            <h3>Appointment History</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Appointment ID</th>
+                            <th>Dentist</th>
+                            <th>Service</th>
+                            <th>Branch</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="appointmentHistoryBody"></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div id="transaction-tab" class="tab-content">
+            <h3>Last Transaction</h3>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Payment ID</th>
+                            <th>Method</th>
+                            <th>Account Name</th>
+                            <th>Amount</th>
+                            <th>Reference No</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionHistoryBody"></tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    
+    // Update modal content with tabs
+    document.querySelector(".modal-content").innerHTML = `
+        <div class="modal-header">
+            <h2>Patient Details - ID: ${patientId}</h2>
+            <span class="close" onclick="closeTreatmentModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            ${tabContent}
+        </div>
+    `;
+    
+    // Load all data
+    loadTreatmentHistory(patientId);
+    loadAppointmentHistory(patientId);
+    loadLastTransaction(patientId);
+    
+    modal.style.display = "block";
+}
+
+function openTab(evt, tabName) {
+    // Hide all tab content
+    const tabcontent = document.getElementsByClassName("tab-content");
+    for (let i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].classList.remove("active");
+    }
+    
+    // Remove active class from all buttons
+    const tabbuttons = document.getElementsByClassName("tab-button");
+    for (let i = 0; i < tabbuttons.length; i++) {
+        tabbuttons[i].classList.remove("active");
+    }
+    
+    // Show current tab and add active class
+    document.getElementById(tabName).classList.add("active");
+    evt.currentTarget.classList.add("active");
+}
+
+    function loadTreatmentHistory(patientId) {
         const tbody = document.getElementById("treatmentHistoryBody");
-
-        // Clear table first
-        tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Loading...</td></tr>";
-
-        // Fetch data via AJAX
+        
         fetch("getTreatmentHistory.php?patient_id=" + patientId)
             .then(response => response.json())
             .then(data => {
@@ -2533,8 +2637,8 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                         const row = `
                             <tr>
                                 <td>${treatment.treatment}</td>
-                                <td>${treatment.prescription_given}</td>
-                                <td>${treatment.notes}</td>
+                                <td>${treatment.prescription_given || 'N/A'}</td>
+                                <td>${treatment.notes || 'N/A'}</td>
                                 <td>₱${parseFloat(treatment.treatment_cost).toFixed(2)}</td>
                                 <td>${treatment.created_at}</td>
                             </tr>`;
@@ -2546,10 +2650,69 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             })
             .catch(error => {
                 console.error("Error fetching treatment history:", error);
-                tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;color:red;'>Error loading data</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;color:red;'>Error loading treatment history</td></tr>";
             });
+    }
 
-        modal.style.display = "block";
+    function loadAppointmentHistory(patientId) {
+        const tbody = document.getElementById("appointmentHistoryBody");
+        tbody.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Loading appointments...</td></tr>";
+        
+        fetch("getAppointmentHistory.php?patient_id=" + patientId)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success" && data.data.length > 0) {
+                    tbody.innerHTML = "";
+                    data.data.forEach(appointment => {
+                        const row = `
+                            <tr>
+                                <td>${appointment.appointment_id}</td>
+                                <td>${appointment.dentist_name}</td>
+                                <td>${appointment.service_name}</td>
+                                <td>${appointment.branch}</td>
+                                <td>${appointment.appointment_date}</td>
+                                <td>${appointment.appointment_time}</td>
+                            </tr>`;
+                        tbody.insertAdjacentHTML("beforeend", row);
+                    });
+                } else {
+                    tbody.innerHTML = "<tr><td colspan='6' style='text-align:center;'>No appointment history found.</td></tr>";
+                }
+            })
+            .catch(error => {
+                console.error("Error fetching appointment history:", error);
+                tbody.innerHTML = "<tr><td colspan='6' style='text-align:center;color:red;'>Error loading appointments</td></tr>";
+            });
+    }
+
+    function loadLastTransaction(patientId) {
+        const tbody = document.getElementById("transactionHistoryBody");
+        tbody.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Loading transaction...</td></tr>";
+        
+        fetch("getLastTransaction.php?patient_id=" + patientId)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === "success" && data.data) {
+                    tbody.innerHTML = "";
+                    const transaction = data.data;
+                    const row = `
+                        <tr>
+                            <td>${transaction.payment_id}</td>
+                            <td>${transaction.method}</td>
+                            <td>${transaction.account_name || 'N/A'}</td>
+                            <td>₱${parseFloat(transaction.amount).toFixed(2)}</td>
+                            <td>${transaction.reference_no || 'N/A'}</td>
+                            <td>${transaction.status}</td>
+                        </tr>`;
+                    tbody.insertAdjacentHTML("beforeend", row);
+                } else {
+                    tbody.innerHTML = "<tr><td colspan='6' style='text-align:center;'>No transaction history found.</td></tr>";
+                }
+            })
+            .catch(error => {
+                console.error("Error fetching transaction history:", error);
+                tbody.innerHTML = "<tr><td colspan='6' style='text-align:center;color:red;'>Error loading transaction</td></tr>";
+            });
     }
 
     // Close modal
@@ -2565,6 +2728,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         }
     });
 
+    //Modal Break
     // Appointment availability checking
     $(document).ready(function(){
         function checkAvailabilityAdminAdd() {
