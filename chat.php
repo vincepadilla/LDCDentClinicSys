@@ -443,7 +443,7 @@
   </div>
 
   <script>
-    const chatToggle = document.getElementById('chat-toggle');
+        const chatToggle = document.getElementById('chat-toggle');
     const chatWidget = document.getElementById('chat-widget');
     const closeChat = document.getElementById('close-chat');
     const chatForm = document.getElementById('chat-form');
@@ -457,15 +457,25 @@
     // Dental services information
     const dentalServices = {
       "General Dentistry": [
-        "Regular checkups",
-        "Cleanings",
-        "Tooth Extraction", 
-        "Fillings",
-        "Preventive Care"
+        "Oral Prophylaxis",
+        "Fluoride Application",
+        "Pit & Fissure Sealants",
+        "Tooth Restoration (Pasta)",
+        "Root Canal Treatment"
       ],
       "Orthodontics": [
         "Braces",
-        "Aligners for a perfectly straight smile"
+        "Retainers"
+      ],
+      "Oral Surgery": [
+        "Tooth Extraction (Bunot)"
+      ],
+      "Endodontics": [
+        "Root Canal Treatment"
+      ],
+      "Prosthodontics": [
+        "Crowns",
+        "Dentures"
       ]
     };
 
@@ -475,40 +485,77 @@
 
 <span class="service-category">General Dentistry</span>
 <ul class="service-list">
-  <li>Regular checkups</li>
-  <li>Cleanings</li>
-  <li>Tooth Extraction</li>
-  <li>Fillings</li>
-  <li>Preventive Care</li>
+  <li>Oral Prophylaxis</li>
+  <li>Fluoride Application</li>
+  <li>Pit & Fissure Sealants</li>
+  <li>Tooth Restoration (Pasta)</li>
+  <li>Root Canal Treatment</li>
 </ul>
 
 <span class="service-category">Orthodontics</span>
 <ul class="service-list">
   <li>Braces</li>
-  <li>Aligners for a perfectly straight smile</li>
+  <li>Retainers</li>
+</ul>
+
+<span class="service-category">Oral Surgery</span>
+<ul class="service-list">
+  <li>Tooth Extraction (Bunot)</li>
+</ul>
+
+<span class="service-category">Endodontics</span>
+<ul class="service-list">
+  <li>Root Canal Treatment</li>
+</ul>
+
+<span class="service-category">Prosthodontics</span>
+<ul class="service-list">
+  <li>Crowns</li>
+  <li>Dentures</li>
 </ul>
 
 Is there a specific service you'd like to know more about?`,
 
-      "How do I book an appointment?": `You can book an appointment in several ways:
+      "How do I book an appointment?": `Booking an appointment is easy! Here's our step-by-step process:
 
-📞 <strong>Phone:</strong> Call us at (123) 456-7890
-📱 <strong>Online:</strong> Visit our website booking page
-🏥 <strong>In-person:</strong> Visit our clinic during business hours
+Step 1: Select Service
+- Choose from our dental services
 
-Our staff will help you find a convenient time slot.`,
+Step 2: Select Sub-service
+- Pick the specific treatment you need
+
+Step 3: Choose Date & Time
+- Select your preferred appointment schedule
+
+Step 4: Payment Method
+Choose between:
+
+Digital Payment (GCash/PayMaya):
+- Input necessary payment details
+- Upload the transaction receipt
+- Your slot will be confirmed immediately
+
+Cash Payment:
+- Your slot will be placed on HOLD
+- You need to pay at the clinic to confirm your appointment
+- Payment must be made before your scheduled date
+
+Final Step:
+After booking, you'll receive a confirmation via email and SMS once the dentist approves your appointment.
+
+Ready to book your appointment? Visit our booking page or call us at (123) 456-7890!`,
 
       "What are your opening hours?": `Our clinic hours are:
 
-🕘 <strong>Monday - Friday:</strong> 9:00 AM - 6:00 PM
-🕘 <strong>Saturday:</strong> 9:00 AM - 2:00 PM
-🚫 <strong>Sunday:</strong> Closed
+Monday - Friday: 9:00 AM - 6:00 PM
+Saturday: 9:00 AM - 2:00 PM
+Sunday: Closed
 
 We recommend booking appointments in advance.`,
 
       "Where are you located?": `We're conveniently located at:
 
-📍 <strong>Landero Dental Clinic</strong>
+Landero Dental Clinic
 123 Dental Street
 Health City, HC 12345
 
@@ -516,21 +563,19 @@ Free parking available onsite.`,
 
       "Do you accept insurance?": `Yes, we accept most major dental insurance plans including:
 
-✓ Delta Dental
-✓ MetLife
-✓ Cigna
-✓ Aetna
-✓ Blue Cross Blue Shield
+Delta Dental
+MetLife
+Cigna
+Aetna
+Blue Cross Blue Shield
 
 Please bring your insurance card to your appointment. We also offer flexible payment plans.`,
 
-      "How much is a dental checkup?": `Our pricing is competitive and transparent:
+      "How much is a dental checkup?": `The cost of dental checkups varies based on the specific treatment procedure needed. 
 
-💰 <strong>Basic Checkup & Cleaning:</strong> $75-$125
-💰 <strong>Comprehensive Exam:</strong> $100-$150
-💰 <strong>X-Rays (if needed):</strong> $25-$75
+We provide personalized treatment plans and cost estimates after your initial examination. The final price depends on the services required and your individual dental needs.
 
-*Prices may vary based on individual needs. We offer payment plans and accept most insurance.`
+For accurate pricing information, we recommend scheduling a consultation where we can assess your specific requirements and provide a detailed cost breakdown.`
     };
 
     // Show chat
@@ -631,7 +676,7 @@ Please bring your insurance card to your appointment. We also offer flexible pay
           questionsHTML += `${index + 1}. ${q}<br>`;
         });
         
-        questionsHTML += '<br><em>Click on any question or type your own.</em>';
+        questionsHTML += '<br>Click on any question or type your own.';
         questionList.innerHTML = questionsHTML;
         chatBox.appendChild(questionList);
         chatBox.scrollTop = chatBox.scrollHeight;
@@ -687,125 +732,139 @@ Please bring your insurance card to your appointment. We also offer flexible pay
       if (indicator) indicator.remove();
     }
 
-    // Replace the existing processMessage function with this new version:
-  function processMessage(message) {
+    function processMessage(message) {
       // Check if we have a predefined response first
       const response = predefinedResponses[message];
       
       if (response) {
-          setTimeout(() => {
-              removeTypingIndicator();
-              addMessage(response, 'bot');
-              addFollowUpQuestions();
-          }, 1000);
+        setTimeout(() => {
+          removeTypingIndicator();
+          addMessage(response, 'bot');
+          addFollowUpQuestions();
+        }, 1000);
       } else {
-          // Send to AI API for processing
-          sendToAI(message);
+        // Send to AI API for processing
+        sendToAI(message);
       }
-  }
+    }
 
-  // New function to handle AI API calls
-  function sendToAI(message) {
+    // New function to handle AI API calls
+    function sendToAI(message) {
       // Get chat history for context
       const chatHistory = getChatHistory();
       
       fetch('chat_api.php', {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-              message: message,
-              history: chatHistory
-          })
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: message,
+          history: chatHistory
+        })
       })
       .then(response => {
-          if (!response.ok) {
-              throw new Error('Network response was not ok');
-          }
-          return response.json();
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return response.json();
       })
       .then(data => {
-          removeTypingIndicator();
-          
-          if (data.answer) {
-              addMessage(data.answer, 'bot');
-          } else {
-              addMessage("I'm sorry, I didn't get a response. Please try again.", 'bot');
-          }
-          
-          addFollowUpQuestions();
+        removeTypingIndicator();
+        
+        if (data.answer) {
+          addMessage(data.answer, 'bot');
+        } else {
+          addMessage("I'm sorry, I didn't get a response. Please try again.", 'bot');
+        }
+        
+        addFollowUpQuestions();
       })
       .catch(error => {
-          console.error('Error:', error);
-          removeTypingIndicator();
-          addMessage("I'm having trouble connecting right now. You can ask me about our services, hours, location, or call us directly at (123) 456-7890.", 'bot');
-          addFollowUpQuestions();
+        console.error('Error:', error);
+        removeTypingIndicator();
+        addMessage("I'm having trouble connecting right now. You can ask me about our services, hours, location, or call us directly at (123) 456-7890.", 'bot');
+        addFollowUpQuestions();
       });
-  }
+    }
 
-  // Helper function to get chat history for AI context
-  function getChatHistory() {
+    // Helper function to get chat history for AI context
+    function getChatHistory() {
       const messages = chatBox.querySelectorAll('.chat-message');
       const history = [];
       
       messages.forEach(message => {
-          if (message.classList.contains('user-message')) {
-              history.push({
-                  role: 'user',
-                  parts: [{ text: message.textContent.trim() }]
-              });
-          } else if (message.classList.contains('bot-message') && !message.querySelector('.quick-questions')) {
-              // Only add bot messages that aren't just quick questions
-              const textContent = message.textContent.trim();
-              if (textContent && !textContent.includes('Hello! 👋')) {
-                  history.push({
-                      role: 'model',
-                      parts: [{ text: textContent }]
-                  });
-              }
+        if (message.classList.contains('user-message')) {
+          history.push({
+            role: 'user',
+            parts: [{ text: message.textContent.trim() }]
+          });
+        } else if (message.classList.contains('bot-message') && !message.querySelector('.quick-questions')) {
+          // Only add bot messages that aren't just quick questions
+          const textContent = message.textContent.trim();
+          if (textContent && !textContent.includes('Hello! 👋')) {
+            history.push({
+              role: 'model',
+              parts: [{ text: textContent }]
+            });
           }
+        }
       });
       
       return history;
-  }
+    }
 
-  // Helper function to add follow-up questions
-  function addFollowUpQuestions() {
+    // Helper function to add follow-up questions
+    function addFollowUpQuestions() {
       setTimeout(() => {
-          const followUpQuestions = document.createElement('div');
-          followUpQuestions.classList.add('quick-questions');
-          followUpQuestions.innerHTML = `
-              <button class="quick-question-btn" data-question="What services do you offer?">
-                  <i class="fas fa-teeth"></i> Services
-              </button>
-              <button class="quick-question-btn" data-question="How do I book an appointment?">
-                  <i class="fas fa-calendar-plus"></i> Book Now
-              </button>
-              <button class="quick-question-btn" data-question="What are your opening hours?">
-                  <i class="fas fa-clock"></i> Hours
-              </button>
-              <button class="quick-question-btn" data-question="Anything else I should know?">
-                  <i class="fas fa-question-circle"></i> More Info
-              </button>
-          `;
+        const followUpQuestions = document.createElement('div');
+        followUpQuestions.classList.add('quick-questions');
+        followUpQuestions.innerHTML = `
+          <button class="quick-question-btn" data-question="What services do you offer?">
+            <i class="fas fa-teeth"></i> Services
+          </button>
+          <button class="quick-question-btn" data-question="How do I book an appointment?">
+            <i class="fas fa-calendar-plus"></i> Book Now
+          </button>
+          <button class="quick-question-btn" data-question="What are your opening hours?">
+            <i class="fas fa-clock"></i> Hours
+          </button>
+          <button class="quick-question-btn" data-question="Anything else I should know?">
+            <i class="fas fa-question-circle"></i> More Info
+          </button>
+        `;
+        
+        // Add to the last bot message
+        const lastBotMessage = document.querySelector('.bot-message:last-child');
+        if (lastBotMessage) {
+          lastBotMessage.appendChild(followUpQuestions);
           
-          // Add to the last bot message
-          const lastBotMessage = document.querySelector('.bot-message:last-child');
-          if (lastBotMessage) {
-              lastBotMessage.appendChild(followUpQuestions);
-              
-              // Re-attach event listeners
-              lastBotMessage.querySelectorAll('.quick-question-btn').forEach(btn => {
-                  btn.addEventListener('click', () => {
-                      const question = btn.getAttribute('data-question');
-                      userInput.value = question;
-                      chatForm.dispatchEvent(new Event('submit'));
-                  });
-              });
-          }
+          // Re-attach event listeners
+          lastBotMessage.querySelectorAll('.quick-question-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const question = btn.getAttribute('data-question');
+              userInput.value = question;
+              chatForm.dispatchEvent(new Event('submit'));
+            });
+          });
+        }
       }, 300);
-  }
+    }
+
+    // Allow Enter key to send message (but Shift+Enter for new line)
+    userInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        chatForm.dispatchEvent(new Event('submit'));
+      }
+    });
+
+    // Auto-focus on input when chat opens
+    document.addEventListener('click', (e) => {
+      if (e.target === chatToggle || chatToggle.contains(e.target)) {
+        setTimeout(() => userInput.focus(), 300);
+      }
+    });
   </script>
 </body>
 </html>

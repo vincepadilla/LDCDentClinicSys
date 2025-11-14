@@ -24,17 +24,17 @@ $chatHistory = $data['history'] ?? [];
 
 // Predefined responses for common questions
 $predefinedResponses = [
-    "what services do you offer?" => "We offer comprehensive dental services including:\n\nGeneral Dentistry\n• Regular checkups\n• Cleanings\n• Tooth Extraction\n• Fillings\n• Preventive Care\n\nOrthodontics\n• Braces\n• Aligners for a perfectly straight smile\n\nIs there a specific service you'd like to know more about?",
+    "what services do you offer?" => "We offer comprehensive dental services including:\n\nGeneral Dentistry\n- Oral Prophylaxis\n- Fluoride Application\n- Pit & Fissure Sealants\n- Tooth Restoration (Pasta)\n- Root Canal Treatment\n\nOrthodontics\n- Braces\n- Retainers\n\nOral Surgery\n- Tooth Extraction (Bunot)\n\nEndodontics\n- Root Canal Treatment\n\nProsthodontics\n- Crowns\n- Dentures\n\nIs there a specific service you'd like to know more about?",
     
-    "how do i book an appointment?" => "You can book an appointment in several ways:\n\n📞 Phone: Call us at (123) 456-7890\n📱 Online: Visit our website booking page\n🏥 In-person: Visit our clinic during business hours\n\nOur staff will help you find a convenient time slot.",
+    "how do i book an appointment?" => "Booking an appointment is easy! Here's our step-by-step process:\n\nStep 1: Select Service\n- Choose from our dental services\n\nStep 2: Select Sub-service\n- Pick the specific treatment you need\n\nStep 3: Choose Date & Time\n- Select your preferred appointment schedule\n\nStep 4: Payment Method\nChoose between:\n\nDigital Payment (GCash/PayMaya):\n- Input necessary payment details\n- Upload the transaction receipt\n- Your slot will be confirmed immediately\n\nCash Payment:\n- Your slot will be placed on HOLD\n- You need to pay at the clinic to confirm your appointment\n- Payment must be made before your scheduled date\n\nFinal Step:\nAfter booking, you'll receive a confirmation via email and SMS once the dentist approves your appointment.\n\nReady to book your appointment? Visit our booking page or call us at (123) 456-7890!",
     
-    "what are your opening hours?" => "Our clinic hours are:\n\n🕘 Monday - Friday: 9:00 AM - 6:00 PM\n🕘 Saturday: 9:00 AM - 2:00 PM\n🚫 Sunday: Closed\n\nWe recommend booking appointments in advance.",
+    "what are your opening hours?" => "Our clinic hours are:\n\nMonday - Friday: 9:00 AM - 6:00 PM\nSaturday: 9:00 AM - 2:00 PM\nSunday: Closed\n\nWe recommend booking appointments in advance.",
     
-    "where are you located?" => "We're conveniently located at:\n\n📍 Landero Dental Clinic\n123 Dental Street\nHealth City, HC 12345\n\nFree parking available onsite.",
+    "where are you located?" => "We're conveniently located at:\n\nLandero Dental Clinic\n123 Dental Street\nHealth City, HC 12345\n\nFree parking available onsite.",
     
-    "do you accept insurance?" => "Yes, we accept most major dental insurance plans including:\n\n✓ Delta Dental\n✓ MetLife\n✓ Cigna\n✓ Aetna\n✓ Blue Cross Blue Shield\n\nPlease bring your insurance card to your appointment. We also offer flexible payment plans.",
+    "do you accept insurance?" => "Yes, we accept most major dental insurance plans including:\n\nDelta Dental\nMetLife\nCigna\nAetna\nBlue Cross Blue Shield\n\nPlease bring your insurance card to your appointment. We also offer flexible payment plans.",
     
-    "how much is a dental checkup?" => "Our pricing is competitive and transparent:\n\n💰 Basic Checkup & Cleaning: $75-$125\n💰 Comprehensive Exam: $100-$150\n💰 X-Rays (if needed): $25-$75\n\n*Prices may vary based on individual needs. We offer payment plans and accept most insurance."
+    "how much is a dental checkup?" => "The cost of dental checkups varies based on the specific treatment procedure needed. \n\nWe provide personalized treatment plans and cost estimates after your initial examination. The final price depends on the services required and your individual dental needs.\n\nFor accurate pricing information, we recommend scheduling a consultation where we can assess your specific requirements and provide a detailed cost breakdown."
 ];
 
 // Check if it's a predefined question
@@ -73,7 +73,7 @@ $contents = [];
 $systemContext = [
     'role' => 'user',
     'parts' => [[
-        'text' => "You are a helpful dental clinic assistant for Landero Dental Clinic. Provide friendly, professional responses about dental services, appointments, and general dental care. Keep responses concise but informative. If you don't know specific details about this clinic, suggest they contact the clinic directly.\n\nClinic Information:\n- Name: Landero Dental Clinic\n- Services: General Dentistry (checkups, cleanings, extractions, fillings), Orthodontics (braces, aligners)\n- Hours: Mon-Fri 9AM-6PM, Sat 9AM-2PM, Sun Closed\n- Location: 123 Dental Street, Health City\n- Phone: (123) 456-7890\n- Insurance: Accepts most major providers\n\nBe helpful and encourage patients to book appointments for specific concerns."
+        'text' => "You are a helpful dental clinic assistant for Landero Dental Clinic. Provide friendly, professional responses about dental services, appointments, and general dental care. Keep responses concise but informative. If you don't know specific details about this clinic, suggest they contact the clinic directly.\n\nClinic Information:\n- Name: Landero Dental Clinic\n- Services: General Dentistry (Oral Prophylaxis, Fluoride Application, Pit & Fissure Sealants, Tooth Restoration/Pasta, Root Canal Treatment), Orthodontics (Braces, Retainers), Oral Surgery (Tooth Extraction/Bunot), Endodontics (Root Canal Treatment), Prosthodontics (Crowns, Dentures)\n- Hours: Mon-Fri 9AM-6PM, Sat 9AM-2PM, Sun Closed\n- Location: 123 Dental Street, Health City\n- Phone: (123) 456-7890\n- Insurance: Accepts most major providers\n- Booking Process: Select Service → Select Sub-service → Choose Date/Time → Payment Method (GCash/PayMaya with receipt upload or Cash with hold status)\n- Pricing: Do not provide specific prices. State that costs vary based on treatment procedure and individual needs. Recommend consultation for accurate pricing.\n\nBe helpful and encourage patients to book appointments for specific concerns. Do not use icons, asterisks, or emojis in responses."
     ]]
 ];
 $contents[] = $systemContext;
