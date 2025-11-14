@@ -185,6 +185,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         </div>
     </section>
 
+    
+
+    <section>
+
+    <section class="location-section" id="location">
+        <div class="container">
+            <div class="section-title">
+                <h2>Visit Our Clinics</h2>
+                <p>Find us in Comembo, Taguig City or Taytay, Rizal. Use the map and contact details below for easy navigation.</p>
+            </div>
+            <div class="location-grid">
+                <div class="map-wrapper">
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3861.234567890123!2d121.01234567890123!3d14.56789012345678!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTTCsDM0JzA0LjQiTiAxMjHCsDAwJzQ1LjYiRQ!5e0!3m2!1sen!2sph!4v1234567890123!5m2!1sen!2sph"
+                        allowfullscreen=""
+                        loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade"></iframe>
+                </div>
+                <div class="location-details">
+                    <h3>Main Address</h3>
+                    <ul>
+                        <li><i class="fas fa-map-marker-alt"></i><span>Doroteo Jose St, Santa Cruz, Metro Manila 1003</span></li>
+                        <li><i class="fas fa-map-marker-alt"></i><span>Anahaw St., Comembo, Taguig City</span></li>
+                        <li><i class="fas fa-map-marker-alt"></i><span>Taytay Rizal Branch</span></li>
+                        <li><i class="fas fa-phone"></i><span>0922 861 1987</span></li>
+                        <li><i class="fas fa-envelope"></i><span>landerodentalclinic@gmail.com</span></li>
+                    </ul>
+                    <p style="margin-top: 20px;">Need detailed directions? Visit our full <a href="location.php" style="color:var(--primary-color); text-decoration: underline;">location page</a>.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Contact Section -->
+    <section class="contact-section" id="contact-form">
+        <div class="container">
+            <div class="section-title">
+                <h2>Contact Us</h2>
+                <p>Send us a message about appointments, services, or any other concerns about us.</p>
+            </div>
+            <div class="contact-grid">
+                <div class="contact-info-card">
+                    <h3>We’re here to help</h3>
+                    <p>Call us, send an email, or use the form to send your questions and we'll get back to you as soon as possible.</p>
+                    <ul style="list-style:none; padding:0; margin:20px 0 0;">
+                        <li style="margin-bottom:12px;"><i class="fas fa-clock" style="color:var(--primary-color); margin-right:10px;"></i>Mon - Sun: 8:00 AM - 8:00 PM</li>
+                        <li style="margin-bottom:12px;"><i class="fas fa-phone" style="color:var(--primary-color); margin-right:10px;"></i>0922 861 1987</li>
+                        <li><i class="fas fa-envelope" style="color:var(--primary-color); margin-right:10px;"></i>landerodentalclinic@gmail.com</li>
+                    </ul>
+                </div>
+                <div class="contact-form-card">
+                    <form action="contact_process.php" method="POST">
+                        <div>
+                            <label for="contact_name" style="display:block; margin-bottom:6px; font-weight:600;">Full Name</label>
+                            <input type="text" id="contact_name" name="name" required>
+                        </div>
+                        <div>
+                            <label for="contact_email" style="display:block; margin-bottom:6px; font-weight:600;">Email Address</label>
+                            <input type="email" id="contact_email" name="email" placeholder="you@example.com" required>
+                        </div>
+                        <div>
+                            <label for="contact_message" style="display:block; margin-bottom:6px; font-weight:600;">Message</label>
+                            <textarea id="contact_message" name="message" placeholder="How can we assist you?" required></textarea>
+                        </div>
+                        <button type="submit">Send Message</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    
+    
     <!-- Testimonials -->
     <section class="testimonials" id="dentists">
         <div class="container">

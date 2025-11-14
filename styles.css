@@ -875,3 +875,106 @@ footer {
     }
 }
 
+.nav-links .login-status {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 8px;
+    font-size: 18px;
+}
+.location-section, .contact-section {
+    padding: 60px 0;
+}
+.location-section {
+    background-color: #f7fbff;
+}
+.contact-section {
+    background-color: #fff;
+}
+.section-title p {
+    max-width: 640px;
+    margin: 0 auto;
+    color: #555;
+}
+.location-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+    align-items: center;
+}
+.map-wrapper iframe {
+    width: 100%;
+    height: 320px;
+    border: 0;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+}
+.location-details {
+    background: #fff;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.08);
+}
+.location-details h3 {
+    margin-top: 0;
+    color: var(--primary-color);
+}
+.location-details ul {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0 0;
+}
+.location-details li {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    color: #333;
+}
+.location-details i {
+    margin-right: 10px;
+    color: var(--primary-color);
+}
+.contact-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 30px;
+}
+.contact-info-card, .contact-form-card {
+    background: #f7fbff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+}
+.contact-form-card form {
+    display: grid;
+    gap: 20px;
+}
+.contact-form-card input, .contact-form-card textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #dbe7ff;
+    border-radius: 8px;
+    font-size: 16px;
+    font-family: inherit;
+}
+.contact-form-card textarea {
+    min-height: 140px;
+    resize: vertical;
+}
+.contact-form-card button {
+    border: none;
+    background: var(--primary-color);
+    color: #fff;
+    padding: 14px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+.contact-form-card button:hover {
+    opacity: 0.9;
+}
+@media (max-width: 768px) {
+    .map-wrapper iframe {
+        height: 260px;
+    }
+}
