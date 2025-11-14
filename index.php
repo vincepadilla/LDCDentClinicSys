@@ -77,7 +77,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-    .nav-links .login-status { display: inline-flex; align-items: center; margin-left: 8px; font-size: 18px; }
+        .nav-links .login-status { display: inline-flex; align-items: center; margin-left: 8px; font-size: 18px; }
+
+        .services-grid .service-card {
+            overflow: hidden;
+        }
+
+        .service-image {
+            width: 100%;
+            height: 180px;
+            border-radius: 18px;
+            overflow: hidden;
+            margin-bottom: 18px;
+            box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.08);
+        }
+
+        .service-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        @media (max-width: 600px) {
+            .service-image {
+                height: 220px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -133,6 +159,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             
             <div class="services-grid">
                 <div class="service-card" data-service="S001">
+                    <div class="service-image">
+                        <img src="generaldentistry.jpg" alt="General Dentistry service">
+                    </div>
                     <div class="service-icon">
                         <i class="fa-solid fa-stethoscope"></i>
                     </div>
@@ -142,6 +171,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                 </div>
                 
                 <div class="service-card" data-service="S002">
+                    <div class="service-image">
+                        <img src="ortho.jpg" alt="Orthodontics service">
+                    </div>
                     <div class="service-icon">
                         <i class="fas fa-teeth"></i>
                     </div>
@@ -151,6 +183,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                 </div>
 
                 <div class="service-card" data-service="S003">
+                    <div class="service-image">
+                        <img src="oralsur2.jpg" alt="Oral Surgery service">
+                    </div>
                     <div class="service-icon">
                         <i class="fas fa-tooth"></i>
                     </div>
@@ -160,6 +195,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                 </div>
 
                 <div class="service-card service-card-centered" data-service="S004">
+                    <div class="service-image">
+                        <img src="endo.jpg" alt="Endodontics service">
+                    </div>
                     <div class="service-icon">
                         <i class="fa-solid fa-face-grimace"></i>
                     </div>
@@ -169,10 +207,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                 </div>
 
                 <div class="service-card service-card-centered" data-service="S005">
+                    <div class="service-image">
+                        <img src="prosti.jpg" alt="Prosthodontics service">
+                    </div>
                     <div class="service-icon">
                         <i class="fas fa-teeth-open"></i>
                     </div>
-                    <h3>Prosthodontics (Pustiso)</h3>
+                    <h3>Prosthodontics</h3>
                     <p>Bring back your perfect smile with natural-looking tooth replacements.</p>
                     <button class="service-book-btn">Book Appointment</button>
                 </div>
