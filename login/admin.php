@@ -295,7 +295,7 @@ $result = mysqli_query($con, $sql);
             </div>
             
             <div class="filter-group">
-                <label for="filter-status"><i class="fas fa-filter"></i> Status:</label>
+                <label for="filter-status"><i class="fas fa-filter"></i> Status:</label>        
                 <select id="filter-status" onchange="filterAppointments()">
                     <option value="">All</option>
                     <option value="pending">Pending</option>
@@ -357,7 +357,7 @@ $result = mysqli_query($con, $sql);
                                         class="action-btn btn-accent" 
                                         id="reschedBtn<?= $row['appointment_id'] ?>" 
                                         data-id="<?= $row['appointment_id'] ?>"
-                                        onclick="openReschedModalWithID(this)"
+                                        onclick="return openReschedModalWithID(this, event);"
                                         title="Reschedule">
                                         <i class="fas fa-calendar-alt"></i>
                                     </a>
@@ -776,7 +776,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                             <td>₱<?php echo number_format($row['price'], 2); ?></td>
                             <td>
                                 <div class="action-btns">
-                                    <button class="action-btn btn-primary" title="Edit" onclick="editService('<?php echo $row['service_id']; ?>')">
+                                    <button class="action-btn btn-primary" title="Edit" onclick="editServicebtn('<?php echo $row['service_id']; ?>')">
                                         <i class="fas fa-edit"></i>
                                     </button>
 
@@ -812,7 +812,14 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         <h3>ADD SERVICE</h3>
         <form action="addServices.php" method="POST">
             <label for="service_category">Service Category:</label>
-            <input type="text" name="service_category" required>
+            <select name="service_category" required>
+                <option value="" disabled selected>Select a category</option>
+                <option value="General Dentistry">General Dentistry</option>
+                <option value="Onthodontics">Onthodontics</option>
+                <option value="Oral Surgery">Oral Surgery</option>
+                <option value="Endodontics">Endodontics</option>
+                <option value="Prosthodontics">Prosthodontics</option>
+            </select>
 
             <label for="sub_service">Sub Service:</label>
             <input type="text" name="sub_service">
@@ -834,12 +841,19 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 <!-- Edit Service Modal -->
 <div id="editServiceModal" class="modal" style="display:none;">
     <div class="modal-content">
+        <span class="close" onclick="closeEditModal()">&times;</span>
         <h3>EDIT SERVICE</h3>
         <form id="editServiceForm" method="POST" action="updateService.php">
             <input type="hidden" name="service_id" id="editServiceId">
 
             <label for="editServiceCategory">Service Category:</label>
-            <input type="text" name="service_category" id="editServiceCategory" required>
+            <select name="service_category" id="editServiceCategory" required>
+                <option value="General Dentistry">General Dentistry</option>
+                <option value="Orthodontics">Onthodontics</option>
+                <option value="Oral Surgery">Oral Surgery</option>
+                <option value="Endodontics">Endodontics</option>
+                <option value="Prosthodontics Treatments (Pustiso)">Prosthodontics Treatments (Pustiso)</option>
+            </select>
 
             <label for="editSubService">Sub Service:</label>
             <input type="text" name="sub_service" id="editSubService">
@@ -857,6 +871,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         </form>
     </div>
 </div>
+
 
 <!-- Patients -->
 <div id="patients" class="main-content" style="display:none;">
@@ -2877,7 +2892,37 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
     }
 
     function closeEditModal() {
-        document.getElementById('editServiceModal').style.display = 'none';
+    document.getElementById('editServiceModal').style.display = 'none';
+    }
+
+    function editServicebtn(serviceId) {
+        document.getElementById('editServiceModal').style.display = 'block';
+        
+        fetch('getServices.php?id=' + encodeURIComponent(serviceId))
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Received data:', data);
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Fill modal fields
+                document.getElementById('editServiceId').value = data.service_id;
+                document.getElementById('editServiceCategory').value = data.service_category;
+                document.getElementById('editSubService').value = data.sub_service;
+                document.getElementById('editDescription').value = data.description;
+                document.getElementById('editPrice').value = data.price;
+            })
+            .catch(error => {
+                console.error('Error fetching service:', error);
+                alert('Error loading service: ' + error.message);
+            });
     }
 
     function closeEditPatientModal() {
@@ -2889,10 +2934,36 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
     }
 
     // Reschedule functions
-    function openReschedModalWithID(btn) {
+    function openReschedModalWithID(btn, event) {
+        if (event) {
+            event.preventDefault(); // Prevent default link behavior
+        }
         const appointmentID = btn.getAttribute('data-id');
-        document.getElementById('modalAppointmentID').value = appointmentID;
+        
+        if (!appointmentID) {
+            alert('Error: Appointment ID not found');
+            return false;
+        }
+        
+        // Set the appointment ID in the hidden input
+        const modalAppointmentIDInput = document.getElementById('modalAppointmentID');
+        if (modalAppointmentIDInput) {
+            modalAppointmentIDInput.value = appointmentID;
+        }
+        
+        // Reset the form fields (except the appointment ID)
+        const reschedForm = document.querySelector('#reschedModal form');
+        if (reschedForm) {
+            const dateInput = reschedForm.querySelector('#new_date_resched');
+            const timeSelect = reschedForm.querySelector('#new_time_resched');
+            if (dateInput) dateInput.value = '';
+            if (timeSelect) timeSelect.value = '';
+            // Ensure appointment ID is still set
+            modalAppointmentIDInput.value = appointmentID;
+        }
+        
         openReschedModal();
+        return false; // Prevent link navigation
     }
 
     function openReschedModal() {
@@ -2901,6 +2972,11 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 
     function closeReschedModal() {
         document.getElementById("reschedModal").style.display = "none";
+        // Reset form when closing
+        const reschedForm = document.querySelector('#reschedModal form');
+        if (reschedForm) {
+            reschedForm.reset();
+        }
     }
 
     // Image modal functions
