@@ -162,8 +162,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="right-content compact-form">
 
                 <div class="welcome-section">
-                    <h2>Join Our Clinic!</h2>
-                    <p>Create your account to get started</p>
+                    <h2>Create your account to get started</h2>
+                    
                 </div>
 
                 <?php if (!empty($error)) { ?>
@@ -241,7 +241,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <option value="" disabled <?php echo $gender === '' ? 'selected' : ''; ?>>Select gender</option>
                                     <option value="male" <?php echo $gender === 'male' ? 'selected' : ''; ?>>Male</option>
                                     <option value="female" <?php echo $gender === 'female' ? 'selected' : ''; ?>>Female</option>
-                                    <option value="other" <?php echo $gender === 'other' ? 'selected' : ''; ?>>Other</option>
+                                  
                                     <option value="prefer_not_to_say" <?php echo $gender === 'prefer_not_to_say' ? 'selected' : ''; ?>>Prefer not to say</option>
                                 </select>
                             </div>

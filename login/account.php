@@ -25,22 +25,32 @@ $user_query->execute();
 $user_result = $user_query->get_result();
 $user = $user_result->fetch_assoc();
 
-// ✅ Fetch most recent appointment (if patient exists)
-$recent_appointment = null;
+// ✅ Fetch recent appointments (if patient exists)
+// Prioritize non-cancelled appointments over cancelled ones
+$recent_appointments = [];
 if (!empty($user['patient_id'])) {
     $appt_query = $con->prepare("
         SELECT a.appointment_id, a.appointment_date, a.appointment_time, 
-               s.service_category, a.status
+               s.service_category, a.status, a.created_at
         FROM appointments a
         INNER JOIN services s ON a.service_id = s.service_id
         WHERE a.patient_id = ?
-        ORDER BY a.appointment_date DESC, a.appointment_time DESC
-        LIMIT 1
+        ORDER BY 
+            CASE 
+                WHEN a.status IN ('Cancelled', 'Complete', 'Completed', 'No-show') THEN 1
+                ELSE 0
+            END ASC,
+            a.created_at DESC,
+            a.appointment_date DESC, 
+            a.appointment_time DESC
+        LIMIT 5
     ");
     $appt_query->bind_param("s", $user['patient_id']);
     $appt_query->execute();
     $appt_result = $appt_query->get_result();
-    $recent_appointment = $appt_result->fetch_assoc();
+    while ($row = $appt_result->fetch_assoc()) {
+        $recent_appointments[] = $row;
+    }
 }
 
 // ✅ Debug output to browser console
@@ -48,8 +58,7 @@ echo "<script>
 console.log('DEBUG: User ID => " . addslashes($user_id) . "');
 console.log('DEBUG: Patient ID => " . addslashes($user['patient_id'] ?? 'NULL') . "');
 console.log('DEBUG: User data exists => " . (!empty($user) ? 'YES' : 'NO') . "');
-console.log('DEBUG: Found appointment => " . (!empty($recent_appointment) ? 'YES' : 'NO') . "');
-console.log('DEBUG: Appointment ID => " . addslashes($recent_appointment['appointment_id'] ?? 'NULL') . "');
+console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
 </script>";
 ?>
 
@@ -131,69 +140,75 @@ console.log('DEBUG: Appointment ID => " . addslashes($recent_appointment['appoin
                 <h2 class="card-title">Your Recent Appointments</h2>
                 <p class="card-subtitle">View and manage your upcoming visits</p>
 
-                <?php if ($recent_appointment): ?>
-                    <div class="appointment-card">
-                        <div class="appointment-header">
-                            <h3>Appointment #<?= htmlspecialchars($recent_appointment['appointment_id']); ?></h3>
-                            <?php
-                            $status = $recent_appointment['status'];
-                            $statusClass = match($status) {
-                                'Pending' => 'status-pending',
-                                'Confirmed' => 'status-confirmed',
-                                'Cancelled' => 'status-cancelled',
-                                'Completed' => 'status-completed',
-                                default => 'status-default'
-                            };
-                            ?>
-                            <span class="status-badge <?= $statusClass; ?>"><?= htmlspecialchars($status); ?></span>
-                        </div>
-                        
-                        <div class="appointment-details">
-                            <div class="detail-item">
-                                <span class="detail-label">Date</span>
-                                <span class="detail-value"><?= htmlspecialchars($recent_appointment['appointment_date']); ?></span>
+                <?php if (!empty($recent_appointments)): ?>
+                    <?php foreach ($recent_appointments as $recent_appointment): ?>
+                        <div class="appointment-card" style="margin-bottom: 20px;">
+                            <div class="appointment-header">
+                                <h3>Appointment #<?= htmlspecialchars($recent_appointment['appointment_id']); ?></h3>
+                                <?php
+                                $status = $recent_appointment['status'];
+                                $statusClass = match($status) {
+                                    'Pending' => 'status-pending',
+                                    'Confirmed' => 'status-confirmed',
+                                    'Cancelled' => 'status-cancelled',
+                                    'Complete' => 'status-completed',
+                                    'Completed' => 'status-completed',
+                                    'Reschedule' => 'status-pending',
+                                    default => 'status-default'
+                                };
+                                ?>
+                                <span class="status-badge <?= $statusClass; ?>"><?= htmlspecialchars($status); ?></span>
                             </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Time</span>
-                                <span class="detail-value"><?= htmlspecialchars($recent_appointment['appointment_time']); ?></span>
+                            
+                            <div class="appointment-details">
+                                <div class="detail-item">
+                                    <span class="detail-label">Date</span>
+                                    <span class="detail-value"><?= htmlspecialchars($recent_appointment['appointment_date']); ?></span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Time</span>
+                                    <span class="detail-value"><?= htmlspecialchars($recent_appointment['appointment_time']); ?></span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Service</span>
+                                    <span class="detail-value"><?= htmlspecialchars($recent_appointment['service_category']); ?></span>
+                                </div>
+                                <div class="detail-item">
+                                    <span class="detail-label">Dentist</span>
+                                    <span class="detail-value">Dr. Michelle Landero</span>
+                                </div>
                             </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Service</span>
-                                <span class="detail-value"><?= htmlspecialchars($recent_appointment['service_category']); ?></span>
+                            
+                            <div class="appointment-message">
+                                <?php
+                                if ($status == "Pending") {
+                                    echo "<p>Your appointment has been scheduled. Please wait for confirmation.</p>";
+                                } elseif ($status == "Confirmed") {
+                                    echo "<p>Your appointment has been confirmed.</p>";
+                                } elseif ($status == "Complete" || $status == "Completed") {
+                                    echo "<p>Your appointment has been completed.</p>";
+                                } elseif ($status == "Cancelled") {
+                                    echo "<p>Your appointment has been cancelled.</p>";
+                                } elseif ($status == "Reschedule") {
+                                    echo "<p>Your appointment has been rescheduled. Please wait for confirmation.</p>";
+                                }
+                                ?>
                             </div>
-                            <div class="detail-item">
-                                <span class="detail-label">Dentist</span>
-                                <span class="detail-value">Dr. Michelle Landero</span>
-                            </div>
-                        </div>
-                        
-                        <div class="appointment-message">
-                            <?php
-                            if ($status == "Pending") {
-                                echo "<p>Your appointment has been scheduled. Please wait for confirmation.</p>";
-                            } elseif ($status == "Confirmed") {
-                                echo "<p>Your appointment has been confirmed.</p>";
-                            } elseif ($status == "Completed") {
-                                echo "<p>Your appointment has been completed.</p>";
-                            } elseif ($status == "Cancelled") {
-                                echo "<p>Your appointment has been cancelled.</p>";
-                            }
-                            ?>
-                        </div>
-                        
-                        <div class="appointment-actions">
-                            <a href="cancelAppointment.php?id=<?= $recent_appointment['appointment_id']; ?>" 
-                               class="btn btn-danger <?= ($status == 'Cancelled' || $status == 'Completed') ? 'disabled' : ''; ?>"
-                               <?= ($status == 'Cancelled' || $status == 'Completed') ? 'onclick="return false;"' : "onclick=\"return confirm('Are you sure you want to cancel?');\""; ?>>
-                                Cancel Appointment
-                            </a>
+                            
+                            <div class="appointment-actions">
+                                <a href="cancelAppointment.php?id=<?= $recent_appointment['appointment_id']; ?>" 
+                                   class="btn btn-danger <?= ($status == 'Cancelled' || $status == 'Complete' || $status == 'Completed') ? 'disabled' : ''; ?>"
+                                   <?= ($status == 'Cancelled' || $status == 'Complete' || $status == 'Completed') ? 'onclick="return false;"' : "onclick=\"return confirm('Are you sure you want to cancel?');\""; ?>>
+                                    Cancel Appointment
+                                </a>
 
-                            <a href="reschedule.php?id=<?= $recent_appointment['appointment_id']; ?>" 
-                               class="btn btn-primary <?= ($status == 'Cancelled' || $status == 'Completed') ? 'disabled' : ''; ?>">
-                                Reschedule Appointment
-                            </a>
+                                <a href="reschedule.php?id=<?= $recent_appointment['appointment_id']; ?>" 
+                                   class="btn btn-primary <?= ($status == 'Cancelled' || $status == 'Complete' || $status == 'Completed') ? 'disabled' : ''; ?>">
+                                    Reschedule Appointment
+                                </a>
+                            </div>
                         </div>
-                    </div>
+                    <?php endforeach; ?>
                 <?php else: ?>
                     <div class="no-appointment">
                         <div class="no-appointment-icon">📅</div>
