@@ -921,7 +921,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                                         <i class="fas fa-edit"></i>
                                     </button>
 
-                                    <button class="action-btn btn-danger" title="Archive" onclick="editPatient('<?php echo $row['patient_id']; ?>')">
+                                    <button class="action-btn btn-danger" title="Archive" onclick="archivePatient(<?php echo $row['patient_id']; ?>)">
                                         <i class="fa-solid fa-box-archive"></i>
                                     </button>
 
@@ -982,12 +982,12 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                 </div>
             </div>
 
-            <div style="margin-top: 10px;">
-                <label for="editEmail">Email:</label>
-                <input type="email" name="email" id="editEmail" required>
-            </div>
-
             <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <div style="flex: 1;">
+                    <label for="editEmail">Email:</label>
+                    <input type="text" name="email" id="editEmail" required>
+                </div>
+
                 <div style="flex: 1;">
                     <label for="editPhone">Phone:</label>
                     <input type="text" name="phone" id="editPhone" required>
@@ -2925,10 +2925,6 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             });
     }
 
-    function closeEditPatientModal() {
-        document.getElementById('editPatientModal').style.display = 'none';
-    }
-
     function closeEditDentistModal() {
         document.getElementById('editDentistModal').style.display = 'none';
     }
@@ -2994,23 +2990,68 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         modalImg.src = ""; 
     }
 
-    // Edit functions (you'll need to implement the AJAX calls to fetch data)
-    function editService(serviceId) {
-        // Implement AJAX call to fetch service data and populate edit modal
-        console.log('Edit service:', serviceId);
-        // Show edit service modal and populate with data
-    }
-
     function editPatient(patientId) {
-        // Implement AJAX call to fetch patient data and populate edit modal
-        console.log('Edit patient:', patientId);
-        // Show edit patient modal and populate with data
+        
+        document.getElementById('editPatientModal').style.display = 'block';
+        
+        fetch('getPatients.php?patient_id=' + encodeURIComponent(patientId))
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Received data:', data);
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                document.getElementById('editPatientId').value = data.patient_id;
+                document.getElementById('editFirstName').value = data.first_name;
+                document.getElementById('editLastName').value = data.last_name;
+                document.getElementById('editBirthdate').value = data.birthdate;
+                document.getElementById('editGender').value = data.gender;
+                document.getElementById('editEmail').value = data.email;
+                document.getElementById('editPhone').value = data.phone;
+                document.getElementById('editAddress').value = data.address;
+            })
+            .catch(error => {
+                console.error('Error fetching patient:', error);
+                alert('Error loading patient: ' + error.message);
+            });
     }
 
+    function closeEditPatientModal() {
+        document.getElementById('editPatientModal').style.display = 'none';
+    }
+
+    function archivePatient(patientId) {
+        if (!patientId || patientId <= 0) {
+            alert('Invalid patient ID.');
+            return;
+        }
+
+        if (confirm('Are you sure you want to archive this patient? This action cannot be undone.')) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'archivePatient.php';
+
+            const patientIdInput = document.createElement('input');
+            patientIdInput.type = 'hidden';
+            patientIdInput.name = 'patient_id';
+            patientIdInput.value = patientId;
+
+            form.appendChild(patientIdInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+    
+    //For Staffs
     function editDentist(dentistId) {
-        // Implement AJAX call to fetch dentist data and populate edit modal
         console.log('Edit dentist:', dentistId);
-        // Show edit dentist modal and populate with data
     }
 
     // Close sidebar when clicking outside on mobile
