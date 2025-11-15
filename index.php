@@ -162,9 +162,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                     <div class="service-image">
                         <img src="generaldentistry.jpg" alt="General Dentistry service">
                     </div>
-                    <div class="service-icon">
-                        <i class="fa-solid fa-stethoscope"></i>
-                    </div>
                     <h3>General Dentistry</h3>
                     <p>Regular checkups, cleanings, Fillings, and Preventive Care.</p>
                     <button class="service-book-btn">Book Appointment</button>
@@ -173,9 +170,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                 <div class="service-card" data-service="S002">
                     <div class="service-image">
                         <img src="ortho.jpg" alt="Orthodontics service">
-                    </div>
-                    <div class="service-icon">
-                        <i class="fas fa-teeth"></i>
                     </div>
                     <h3>Orthodontics</h3>
                     <p>Braces and aligners for a perfectly straight smile.</p>
@@ -186,32 +180,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                     <div class="service-image">
                         <img src="oralsur2.jpg" alt="Oral Surgery service">
                     </div>
-                    <div class="service-icon">
-                        <i class="fas fa-tooth"></i>
-                    </div>
                     <h3>Oral Surgery</h3>
                     <p>Gentle extractions and surgical care for a healthier smile.</p>
                     <button class="service-book-btn">Book Appointment</button>
                 </div>
 
-                <div class="service-card service-card-centered" data-service="S004">
+                <div class="service-card" data-service="S004">
                     <div class="service-image">
                         <img src="endo.jpg" alt="Endodontics service">
-                    </div>
-                    <div class="service-icon">
-                        <i class="fa-solid fa-face-grimace"></i>
                     </div>
                     <h3>Endodontics</h3>
                     <p>Save your natural teeth with expert root canal care.</p>
                     <button class="service-book-btn">Book Appointment</button>
                 </div>
 
-                <div class="service-card service-card-centered" data-service="S005">
+                <div class="service-card" data-service="S005">
                     <div class="service-image">
                         <img src="prosti.jpg" alt="Prosthodontics service">
-                    </div>
-                    <div class="service-icon">
-                        <i class="fas fa-teeth-open"></i>
                     </div>
                     <h3>Prosthodontics</h3>
                     <p>Bring back your perfect smile with natural-looking tooth replacements.</p>
@@ -221,7 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             </div>
 
             <div class="text-center">
-                <a href="view_services.php" class="btn btn-services">View Services Description</a>
+                <a href="view_services.php" class="btn btn-services">View All Services Description</a>
             </div>
         </div>
     </section>

@@ -103,8 +103,8 @@ if (isset($_POST['submit'])) {
                 </div>
 
                 <div class="welcome-section">
-                    <h2>Welcome Back!</h2>
-                    <p>Log in to continue your smile journey.</p>
+                    <h2>Sign In to Your Account</h2>
+                  
                 </div>
 
                 <?php if (isset($error)) { ?>
