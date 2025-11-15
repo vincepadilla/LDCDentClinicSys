@@ -271,7 +271,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['verify'])) {
 
         .admin-toggle-password {
             position: absolute;
-            right: 16px;
+            right: 30px;
             top: 50%;
             transform: translateY(-50%);
             background: none;
@@ -403,7 +403,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['verify'])) {
                             <input type="password" name="code" id="code" required
                                    placeholder="Enter verification code"
                                    value="<?php echo isset($_POST['code']) ? htmlspecialchars($_POST['code']) : ''; ?>">
-                            <button type="button" class="admin-toggle-password" id="toggleCode"></button>
+                            <button type="button" class="admin-toggle-password" id="toggleCode">
+                                <i class="fas fa-eye"></i>
+                            </button>
                         </div>
                     </div>
 

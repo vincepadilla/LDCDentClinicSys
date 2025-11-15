@@ -256,7 +256,7 @@ body {
 
 .toggle-password {
     position: absolute;
-    right: 16px;
+    right: 30px;
     top: 50%;
     transform: translateY(-50%);
     background: none;

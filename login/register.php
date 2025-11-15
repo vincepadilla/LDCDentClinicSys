@@ -262,7 +262,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="input-field compact-input">
                                 <i class="fas fa-lock"></i>
                                 <input type="password" name="password" id="password" placeholder="Create password" value="<?php echo htmlspecialchars($password, ENT_QUOTES); ?>" required>
-                                <button type="button" class="toggle-password compact-toggle" id="togglePassword"></button>
+                                <button type="button" class="toggle-password compact-toggle" id="togglePassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
                             </div>
                         </div>
 
@@ -271,7 +273,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="input-field compact-input">
                                 <i class="fas fa-lock"></i>
                                 <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm password" value="<?php echo htmlspecialchars($confirm_password, ENT_QUOTES); ?>" required>
-                                <button type="button" class="toggle-password compact-toggle" id="toggleConfirmPassword"></button>
+                                <button type="button" class="toggle-password compact-toggle" id="toggleConfirmPassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
