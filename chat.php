@@ -543,7 +543,7 @@ Cash Payment:
 Final Step:
 After booking, you'll receive a confirmation via email and SMS once the dentist approves your appointment.
 
-Ready to book your appointment? Visit our booking page or call us at (123) 456-7890!`,
+Ready to book your appointment? Visit our booking page or call us at 09458471502!`,
 
       "What are your opening hours?": `Our clinic hours are:
 
@@ -556,10 +556,8 @@ We recommend booking appointments in advance.`,
       "Where are you located?": `We're conveniently located at:
 
 Landero Dental Clinic
-123 Dental Street
-Health City, HC 12345
-
-Free parking available onsite.`,
+Anahaw St. Comembo
+Taguig City`,
 
       "Do you accept insurance?": `Yes, we accept most major dental insurance plans including:
 
@@ -662,9 +660,7 @@ For accurate pricing information, we recommend scheduling a consultation where w
         "How long does a typical cleaning take?",
         "Do you offer teeth whitening?",
         "What should I do for a toothache?",
-        "How often should I get a dental checkup?",
-        "Do you see children?",
-        "What COVID safety measures do you have?"
+        "How often should I get a dental checkup?"
       ];
       
       setTimeout(() => {
@@ -783,7 +779,7 @@ For accurate pricing information, we recommend scheduling a consultation where w
       .catch(error => {
         console.error('Error:', error);
         removeTypingIndicator();
-        addMessage("I'm having trouble connecting right now. You can ask me about our services, hours, location, or call us directly at (123) 456-7890.", 'bot');
+        addMessage("I'm having trouble connecting right now. You can ask me about our services, hours, location, or call us directly at 09458471502.", 'bot');
         addFollowUpQuestions();
       });
     }

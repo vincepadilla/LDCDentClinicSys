@@ -28,7 +28,7 @@ $predefinedResponses = [
     
     "how do i book an appointment?" => "Booking an appointment is easy! Here's our step-by-step process:\n\nStep 1: Select Service\n- Choose from our dental services\n\nStep 2: Select Sub-service\n- Pick the specific treatment you need\n\nStep 3: Choose Date & Time\n- Select your preferred appointment schedule\n\nStep 4: Payment Method\nChoose between:\n\nDigital Payment (GCash/PayMaya):\n- Input necessary payment details\n- Upload the transaction receipt\n- Your slot will be confirmed immediately\n\nCash Payment:\n- Your slot will be placed on HOLD\n- You need to pay at the clinic to confirm your appointment\n- Payment must be made before your scheduled date\n\nFinal Step:\nAfter booking, you'll receive a confirmation via email and SMS once the dentist approves your appointment.\n\nReady to book your appointment? Visit our booking page or call us at (123) 456-7890!",
     
-    "what are your opening hours?" => "Our clinic hours are:\n\nMonday - Friday: 9:00 AM - 6:00 PM\nSaturday: 9:00 AM - 2:00 PM\nSunday: Closed\n\nWe recommend booking appointments in advance.",
+    "what are your opening hours?" => "Our clinic hours are:\n\nMonday - Friday: 8:00 AM - 5:00 PM\nSaturday: 9:00 AM - 2:00 PM\nSunday: Closed\n\nWe recommend booking appointments in advance.",
     
     "where are you located?" => "We're conveniently located at:\n\nLandero Dental Clinic\n123 Dental Street\nHealth City, HC 12345\n\nFree parking available onsite.",
     
@@ -123,7 +123,7 @@ curl_close($ch);
 
 if ($response === false) {
     $errorResponse = [
-        'answer' => "I apologize, but I'm having trouble connecting right now. Please try again in a moment or call us directly at (123) 456-7890.",
+        'answer' => "I apologize, but I'm having trouble connecting right now. Please try again in a moment or call us directly at 09458471502.",
         'history' => $chatHistory,
         'source' => 'error'
     ];
@@ -135,7 +135,7 @@ $responseData = json_decode($response, true);
 
 if ($httpCode !== 200 || !isset($responseData['candidates'][0]['content']['parts'][0]['text'])) {
     $errorResponse = [
-        'answer' => "I'm sorry, I couldn't process your question. Please try rephrasing it or contact us directly at (123) 456-7890 for assistance.",
+        'answer' => "I'm sorry, I couldn't process your question. Please try rephrasing it or contact us directly at 09458471502 for assistance.",
         'history' => $chatHistory,
         'source' => 'error'
     ];

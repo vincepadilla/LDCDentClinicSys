@@ -301,7 +301,7 @@ $result = mysqli_query($con, $sql);
                     <option value="pending">Pending</option>
                     <option value="confirmed">Confirmed</option>
                     <option value="reschedule">Reschedule</option>
-                    <option value="complete">Complete</option>
+                    <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
                     <option value="no-show">No-Show</option>
                 </select> 
@@ -2517,113 +2517,96 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
     
     // See More Patient Modal
     function seeMoreDetails(patientId) {
-    const modal = document.getElementById("treatmentHistoryModal");
-    const tbody = document.getElementById("treatmentHistoryBody");
-    
-    // Clear table first and show loading
-    tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>Loading treatment history...</td></tr>";
-    
-    // Create tabs for different sections
-    const tabContent = `
-        <div class="modal-tabs">
-            <button class="tab-button active" onclick="openTab(event, 'treatment-tab')">Treatment History</button>
-            <button class="tab-button" onclick="openTab(event, 'appointment-tab')">Appointment History</button>
-            <button class="tab-button" onclick="openTab(event, 'transaction-tab')">Last Transaction</button>
-        </div>
+        const modal = document.getElementById("treatmentHistoryModal");
+        const modalContent = modal.querySelector(".treatment-modal-content");
         
-        <div id="treatment-tab" class="tab-content active">
-            <h3>Treatment History</h3>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Treatment</th>
-                            <th>Prescription</th>
-                            <th>Notes</th>
-                            <th>Cost</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody id="treatmentHistoryBody"></tbody>
-                </table>
+        // Create modal content with all three sections
+        const newModalContent = `
+            <div class="treatment-modal-header">
+                <h3><i class="fa-solid fa-user"></i> Patient Details - ID: ${patientId}</h3>
+                <span class="treatment-close-btn" onclick="closeTreatmentModal()">&times;</span>
             </div>
-        </div>
+            <div class="treatment-modal-body">
+                <!-- Treatment History Section -->
+                <div class="section-container">
+                    <h3>Treatment History</h3>
+                    <div class="table-container">
+                        <table class="treatment-table">
+                            <thead>
+                                <tr>
+                                    <th>Treatment</th>
+                                    <th>Prescription</th>
+                                    <th>Notes</th>
+                                    <th>Cost</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="treatmentHistoryBody">
+                                <tr><td colspan="5" style="text-align:center;">Loading treatment history...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Appointment History Section -->
+                <div class="section-container">
+                    <h3>Appointment History</h3>
+                    <div class="table-container">
+                        <table class="treatment-table">
+                            <thead>
+                                <tr>
+                                    <th>Appointment ID</th>
+                                    <th>Dentist</th>
+                                    <th>Service</th>
+                                    <th>Branch</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="appointmentHistoryBody">
+                                <tr><td colspan="6" style="text-align:center;">Loading appointments...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Last Transaction Section -->
+                <div class="section-container">
+                    <h3>Last Transaction</h3>
+                    <div class="table-container">
+                        <table class="treatment-table">
+                            <thead>
+                                <tr>
+                                    <th>Payment ID</th>
+                                    <th>Method</th>
+                                    <th>Account Name</th>
+                                    <th>Amount</th>
+                                    <th>Reference No</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactionHistoryBody">
+                                <tr><td colspan="6" style="text-align:center;">Loading transaction...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
         
-        <div id="appointment-tab" class="tab-content">
-            <h3>Appointment History</h3>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Appointment ID</th>
-                            <th>Dentist</th>
-                            <th>Service</th>
-                            <th>Branch</th>
-                            <th>Date</th>
-                            <th>Time</th>
-                        </tr>
-                    </thead>
-                    <tbody id="appointmentHistoryBody"></tbody>
-                </table>
-            </div>
-        </div>
+        // Update modal content - use the correct selector
+        if (modalContent) {
+            modalContent.innerHTML = newModalContent;
+        }
         
-        <div id="transaction-tab" class="tab-content">
-            <h3>Last Transaction</h3>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Payment ID</th>
-                            <th>Method</th>
-                            <th>Account Name</th>
-                            <th>Amount</th>
-                            <th>Reference No</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="transactionHistoryBody"></tbody>
-                </table>
-            </div>
-        </div>
-    `;
-    
-    // Update modal content with tabs
-    document.querySelector(".modal-content").innerHTML = `
-        <div class="modal-header">
-            <h2>Patient Details - ID: ${patientId}</h2>
-            <span class="close" onclick="closeTreatmentModal()">&times;</span>
-        </div>
-        <div class="modal-body">
-            ${tabContent}
-        </div>
-    `;
-    
-    // Load all data
-    loadTreatmentHistory(patientId);
-    loadAppointmentHistory(patientId);
-    loadLastTransaction(patientId);
-    
-    modal.style.display = "block";
-}
-
-function openTab(evt, tabName) {
-    // Hide all tab content
-    const tabcontent = document.getElementsByClassName("tab-content");
-    for (let i = 0; i < tabcontent.length; i++) {
-        tabcontent[i].classList.remove("active");
+        // Load all data
+        loadTreatmentHistory(patientId);
+        loadAppointmentHistory(patientId);
+        loadLastTransaction(patientId);
+        
+        // Show the modal
+        modal.style.display = "block";
     }
-    
-    // Remove active class from all buttons
-    const tabbuttons = document.getElementsByClassName("tab-button");
-    for (let i = 0; i < tabbuttons.length; i++) {
-        tabbuttons[i].classList.remove("active");
-    }
-    
-    // Show current tab and add active class
-    document.getElementById(tabName).classList.add("active");
-    evt.currentTarget.classList.add("active");
-}
 
     function loadTreatmentHistory(patientId) {
         const tbody = document.getElementById("treatmentHistoryBody");
@@ -2656,7 +2639,6 @@ function openTab(evt, tabName) {
 
     function loadAppointmentHistory(patientId) {
         const tbody = document.getElementById("appointmentHistoryBody");
-        tbody.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Loading appointments...</td></tr>";
         
         fetch("getAppointmentHistory.php?patient_id=" + patientId)
             .then(response => response.json())
@@ -2687,7 +2669,6 @@ function openTab(evt, tabName) {
 
     function loadLastTransaction(patientId) {
         const tbody = document.getElementById("transactionHistoryBody");
-        tbody.innerHTML = "<tr><td colspan='6' style='text-align:center;'>Loading transaction...</td></tr>";
         
         fetch("getLastTransaction.php?patient_id=" + patientId)
             .then(response => response.json())

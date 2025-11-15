@@ -855,6 +855,24 @@ tr:hover {
     text-align: left;
   }
   
+  /* Section and Table Containers */
+  .treatment-modal-body .section-container {
+    margin-bottom: 30px;
+  }
+  
+  .treatment-modal-body .table-container {
+    overflow-x: auto;
+    margin-top: 10px;
+  }
+  
+  .treatment-modal-body h3 {
+    color: #2a9d8f;
+    border-bottom: 2px solid #2a9d8f;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+  }
+  
   /* Animation */
   @keyframes slideDown {
     from {transform: translateY(-30px); opacity: 0;}
