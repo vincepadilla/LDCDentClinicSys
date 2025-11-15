@@ -3066,7 +3066,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
     });
 
     // Dentist Schedules
-    let currentWeekStart = new Date();
+    let currentWeekStart = getMondayOf(new Date());
     let currentMonth = new Date().getMonth();
     let currentYear = new Date().getFullYear();
 
@@ -3083,21 +3083,74 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         document.getElementById('monthlyView').style.display = viewType === 'monthly' ? 'block' : 'none';
     }
 
+    // Ensure currentWeekStart is the Monday of the current week
+    function getMondayOf(date) {
+        const d = new Date(date);
+        const day = d.getDay(); // 0 (Sun) .. 6 (Sat)
+        const diffToMonday = (day === 0) ? -6 : 1 - day;
+        d.setDate(d.getDate() + diffToMonday);
+        d.setHours(0,0,0,0);
+        return d;
+    }
+
     function changeWeek(direction) {
         currentWeekStart.setDate(currentWeekStart.getDate() + (direction * 7));
         updateWeekDisplay();
-        loadScheduleData();
+        loadScheduleData(); // keep your existing call
     }
+
+        // initial call when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        // If somewhere else you set currentWeekStart differently, ensure this runs after that initialization.
+        currentWeekStart = getMondayOf(currentWeekStart); // normalize
+        updateWeekDisplay();
+    });
 
     function updateWeekDisplay() {
         const weekEnd = new Date(currentWeekStart);
         weekEnd.setDate(weekEnd.getDate() + 5); // Monday to Saturday
-        
         const options = { month: 'short', day: 'numeric' };
         const startStr = currentWeekStart.toLocaleDateString('en-US', options);
         const endStr = weekEnd.toLocaleDateString('en-US', options);
-        
         document.getElementById('currentWeekRange').textContent = `Week of ${startStr} - ${endStr}`;
+
+        // ALSO update the individual day headers and time-slot data-date attributes
+        updateDayHeadersAndCells();
+    }
+
+    function updateDayHeadersAndCells() {
+        // Update day-date elements under .day-header (assumes there are 6 columns Mon..Sat)
+        const dayDateEls = document.querySelectorAll('.time-slots-header .day-header .day-date');
+        for (let i = 0; i < dayDateEls.length; i++) {
+            const d = new Date(currentWeekStart);
+            d.setDate(currentWeekStart.getDate() + i);
+            dayDateEls[i].textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); // "Nov 10"
+        }
+
+        // Update each .time-slot-cell[data-slot] to carry the correct data-date (Y-m-d)
+        const cells = document.querySelectorAll('.time-slot-cell');
+        cells.forEach(cell => {
+            const slotIndexAttr = cell.getAttribute('data-col-index'); // optional helper if present
+            // Find which column index this cell belongs to:
+            // If you already output cells in column order (inside for loop), you can read existing data-slot and compute index by counting siblings.
+            // We'll compute using the cell's position among its .time-slot-row parent children:
+            const parentRow = cell.parentElement; // .time-slot-row
+            if (!parentRow) return;
+            // Get nodeList of cells in this row
+            const rowCells = Array.from(parentRow.querySelectorAll('.time-slot-cell'));
+            const colIndex = rowCells.indexOf(cell); // 0..5 (Mon..Sat)
+            if (colIndex >= 0) {
+            const dateForCell = new Date(currentWeekStart);
+            dateForCell.setDate(currentWeekStart.getDate() + colIndex);
+            const yyyy = dateForCell.getFullYear();
+            const mm = String(dateForCell.getMonth() + 1).padStart(2, '0');
+            const dd = String(dateForCell.getDate()).padStart(2, '0');
+            const isoDate = `${yyyy}-${mm}-${dd}`;
+            cell.setAttribute('data-date', isoDate);
+
+            // If the inner slot-status element shows text with a date or depends on it, you can also update it here.
+            }
+        });
     }
 
     function changeMonth(direction) {
