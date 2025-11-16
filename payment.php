@@ -55,28 +55,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
 
     // Map subService to service_id
     switch ($subService) {
-        case 'Cleaning':   $service_id = 'S001'; break;
-        case 'Checkups':   $service_id = 'S001'; break;
-        case 'Flouride':   $service_id = 'S001'; break;
-        case 'Pit & Fissure Sealants':   $service_id = 'S001'; break;
-        case 'Tooth Restoration':   $service_id = 'S001'; break;
-        case 'Braces':     $service_id = 'S002'; break;
-        case 'Retainers':     $service_id = 'S002'; break;
-        case 'Tooth Extraction': $service_id = 'S003'; break;
-        case 'Root Canal Treatment': $service_id = 'S004'; break;
-        case 'Crowns': $service_id = 'S005'; break;
-        case 'Dentures': $service_id = 'S005'; break;
-        default:           $service_id = 'N/A'; break;
+        // General Dentistry
+        case 'Checkups':                     $service_id = 'S001'; break;
+        case 'Oral Prophylaxis (Cleaning)':  $service_id = 'S1001'; break;
+        case 'Fluoride Application':         $service_id = 'S1002'; break;
+        case 'Pit & Fissure Sealants':       $service_id = 'S1003'; break;
+        case 'Tooth Restoration (Pasta)':    $service_id = 'S1004'; break;
+        // Orthodontics
+        case 'Braces':                       $service_id = 'S002'; break;
+        case 'Retainers':                    $service_id = 'S2001'; break;
+        // Oral Surgery
+        case 'Tooth Extraction (Bunot)':     $service_id = 'S003'; break;
+        // Endodontics
+        case 'Root Canal Treatment':         $service_id = 'S004'; break;
+        // Prosthodontics
+        case 'Crowns':                       $service_id = 'S005'; break;
+        case 'Dentures':                     $service_id = 'S5001'; break;
+        default: $service_id = 'N/A'; break;
     }
 
-    // Map service_id to service_name
+    // Map service_id to category name
     switch ($service_id) {
-        case 'S001': $service_name = 'General Dentistry'; break;
-        case 'S002': $service_name = 'Orthodontics'; break;
-        case 'S003': $service_name = 'Oral Surgery'; break;
-        case 'S004': $service_name = 'Endodontics'; break;
-        case 'S005': $service_name = 'Prosthodontics (Pustiso)'; break;
-        default:     $service_name = 'Unknown Service'; break;
+        case 'S001': 
+        case 'S1001':
+        case 'S1002':
+        case 'S1003':
+        case 'S1004':
+            $service_name = 'General Dentistry'; 
+            break;
+
+        case 'S002': 
+        case 'S2001':
+            $service_name = 'Orthodontics'; 
+            break;
+
+        case 'S003': 
+            $service_name = 'Oral Surgery'; 
+            break;
+
+        case 'S004': 
+            $service_name = 'Endodontics'; 
+            break;
+
+        case 'S005': 
+        case 'S5001':
+            $service_name = 'Prosthodontics Treatments (Pustiso)'; 
+            break;
+
+        default: 
+            $service_name = 'Unknown Service'; 
+            break;
     }
 
     $branch = htmlspecialchars($_POST['branch'] ?? 'N/A');

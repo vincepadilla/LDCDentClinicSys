@@ -25,26 +25,47 @@ $user_query->execute();
 $user_result = $user_query->get_result();
 $user = $user_result->fetch_assoc();
 
-// ✅ Fetch recent appointments (if patient exists)
-// Prioritize non-cancelled appointments over cancelled ones
+// ✅ Fetch appointments (if patient exists)
+// Check if viewing all appointments or just recent ones
+$view_all = isset($_GET['view']) && $_GET['view'] == 'all';
 $recent_appointments = [];
 if (!empty($user['patient_id'])) {
-    $appt_query = $con->prepare("
-        SELECT a.appointment_id, a.appointment_date, a.appointment_time, 
-               s.service_category, a.status, a.created_at
-        FROM appointments a
-        INNER JOIN services s ON a.service_id = s.service_id
-        WHERE a.patient_id = ?
-        ORDER BY 
-            CASE 
-                WHEN a.status IN ('Cancelled', 'Complete', 'Completed', 'No-show') THEN 1
-                ELSE 0
-            END ASC,
-            a.created_at DESC,
-            a.appointment_date DESC, 
-            a.appointment_time DESC
-        LIMIT 5
-    ");
+    if ($view_all) {
+        // Query for all appointments
+        $appt_query = $con->prepare("
+            SELECT a.appointment_id, a.appointment_date, a.appointment_time, 
+                   s.service_category, a.status, a.created_at
+            FROM appointments a
+            INNER JOIN services s ON a.service_id = s.service_id
+            WHERE a.patient_id = ?
+            ORDER BY 
+                CASE 
+                    WHEN a.status IN ('Cancelled', 'Complete', 'Completed', 'No-show') THEN 1
+                    ELSE 0
+                END ASC,
+                a.created_at DESC,
+                a.appointment_date DESC, 
+                a.appointment_time DESC
+        ");
+    } else {
+        // Query for recent appointments (limit 5)
+        $appt_query = $con->prepare("
+            SELECT a.appointment_id, a.appointment_date, a.appointment_time, 
+                   s.service_category, a.status, a.created_at
+            FROM appointments a
+            INNER JOIN services s ON a.service_id = s.service_id
+            WHERE a.patient_id = ?
+            ORDER BY 
+                CASE 
+                    WHEN a.status IN ('Cancelled', 'Complete', 'Completed', 'No-show') THEN 1
+                    ELSE 0
+                END ASC,
+                a.created_at DESC,
+                a.appointment_date DESC, 
+                a.appointment_time DESC
+            LIMIT 5
+        ");
+    }
     $appt_query->bind_param("s", $user['patient_id']);
     $appt_query->execute();
     $appt_result = $appt_query->get_result();
@@ -118,10 +139,17 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
                 <h2 class="card-title">Quick Actions</h2>
                 
                 <div class="action-list">
-                    <a href="#" class="action-item">
-                        <span class="action-icon">📋</span>
-                        <span class="action-text">View All Appointments</span>
-                    </a>
+                    <?php if ($view_all): ?>
+                        <a href="account.php" class="action-item">
+                            <span class="action-icon">📋</span>
+                            <span class="action-text">View Recent Appointments</span>
+                        </a>
+                    <?php else: ?>
+                        <a href="account.php?view=all" class="action-item">
+                            <span class="action-icon">📋</span>
+                            <span class="action-text">View All Appointments</span>
+                        </a>
+                    <?php endif; ?>
                     <a href="#edit-credentials" class="action-item" onclick="openCredentialsModal()">
                         <span class="action-icon">🔐</span>
                         <span class="action-text">Change Password</span>
@@ -137,8 +165,8 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
         <!-- Right Column - Recent Appointments -->
         <div class="right-column">
             <div class="card">
-                <h2 class="card-title">Your Recent Appointments</h2>
-                <p class="card-subtitle">View and manage your upcoming visits</p>
+                <h2 class="card-title"><?= $view_all ? 'All Your Appointments' : 'Your Recent Appointments'; ?></h2>
+                <p class="card-subtitle"><?= $view_all ? 'View and manage all your appointments' : 'View and manage your upcoming visits'; ?></p>
 
                 <?php if (!empty($recent_appointments)): ?>
                     <?php foreach ($recent_appointments as $recent_appointment): ?>
@@ -153,7 +181,7 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
                                     'Cancelled' => 'status-cancelled',
                                     'Complete' => 'status-completed',
                                     'Completed' => 'status-completed',
-                                    'Reschedule' => 'status-pending',
+                                    'Reschedule' => 'status-reschedule',
                                     default => 'status-default'
                                 };
                                 ?>

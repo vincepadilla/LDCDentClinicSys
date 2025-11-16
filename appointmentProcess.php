@@ -113,14 +113,41 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit();
     }
 
-    // === PATIENT INSERT (with prefix) ===
-    $patient_id = generateID('P', 'patient_information', 'patient_id', $con);
-    $insertPatient = "INSERT INTO patient_information 
-        (patient_id, user_id, first_name, last_name, birthdate, gender, phone, email, address) 
-        VALUES 
-        ('$patient_id', '$userID', '$fname', '$lname', '$birthdate', '$gender', '$phone', '$email', '$address')";
+    // === CHECK IF PATIENT EXISTS ===
+    $userID_escaped_check = mysqli_real_escape_string($con, $userID);
+    $checkPatientQuery = "SELECT patient_id FROM patient_information WHERE user_id = '$userID_escaped_check' LIMIT 1";
+    $checkPatientResult = mysqli_query($con, $checkPatientQuery);
+    $existingPatient = mysqli_fetch_assoc($checkPatientResult);
+    $isExistingPatient = !empty($existingPatient);
 
-    if (mysqli_query($con, $insertPatient)) {
+    if ($isExistingPatient) {
+        // Patient already exists, use existing patient_id
+        $patient_id = $existingPatient['patient_id'];
+        
+        // Update patient information in case details changed
+        $updatePatient = "UPDATE patient_information 
+            SET first_name = '$fname', 
+                last_name = '$lname', 
+                birthdate = '$birthdate', 
+                gender = '$gender', 
+                phone = '$phone', 
+                email = '$email', 
+                address = '$address' 
+            WHERE patient_id = '$patient_id'";
+        
+        $patientInsertSuccess = mysqli_query($con, $updatePatient);
+    } else {
+        // Patient doesn't exist, create new patient record
+        $patient_id = generateID('P', 'patient_information', 'patient_id', $con);
+        $insertPatient = "INSERT INTO patient_information 
+            (patient_id, user_id, first_name, last_name, birthdate, gender, phone, email, address) 
+            VALUES 
+            ('$patient_id', '$userID', '$fname', '$lname', '$birthdate', '$gender', '$phone', '$email', '$address')";
+        
+        $patientInsertSuccess = mysqli_query($con, $insertPatient);
+    }
+
+    if ($patientInsertSuccess) {
         // === APPOINTMENT INSERT ===
         $appointment_id = generateID('A', 'appointments', 'appointment_id', $con);
         $insertAppointment = "INSERT INTO appointments 
@@ -172,7 +199,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     } else {
         error_log('Patient error: ' . mysqli_error($con));
-        echo "<script>alert('Error saving patient info. Try again.');
+        $errorMsg = $isExistingPatient ? 'Error updating patient info. Try again.' : 'Error saving patient info. Try again.';
+        echo "<script>alert('$errorMsg');
         window.location.href='index.php#appointment';</script>";
     }
 } else {
