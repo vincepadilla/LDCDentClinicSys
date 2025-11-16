@@ -3,17 +3,17 @@ session_start();
 include_once('./login/config.php');
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['valid']) || !isset($_SESSION['user_id'])) {
+if (!isset($_SESSION['valid']) || !isset($_SESSION['userID'])) {
     echo json_encode(['success' => false, 'error' => 'Not authenticated']);
     exit;
 }
 
-$user_id = $_SESSION['user_id'];
+$user_id = $_SESSION['userID'];
 
 try {
     // Fetch notifications from database
     $sql = "SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 20";
-    $stmt = $conn->prepare($sql);
+    $stmt = $con->prepare($sql);
     
     if (!$stmt) {
         throw new Exception("Prepare failed: ");
