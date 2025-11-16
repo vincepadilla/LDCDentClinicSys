@@ -31,12 +31,14 @@ $view_all = isset($_GET['view']) && $_GET['view'] == 'all';
 $recent_appointments = [];
 if (!empty($user['patient_id'])) {
     if ($view_all) {
-        // Query for all appointments
+        // Query for all appointments with payment information
         $appt_query = $con->prepare("
             SELECT a.appointment_id, a.appointment_date, a.appointment_time, 
-                   s.service_category, a.status, a.created_at
+                   s.service_category, a.status, a.created_at,
+                   p.method as payment_method, p.status as payment_status
             FROM appointments a
             INNER JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN payment p ON a.appointment_id = p.appointment_id
             WHERE a.patient_id = ?
             ORDER BY 
                 CASE 
@@ -48,12 +50,14 @@ if (!empty($user['patient_id'])) {
                 a.appointment_time DESC
         ");
     } else {
-        // Query for recent appointments (limit 5)
+        // Query for recent appointments (limit 5) with payment information
         $appt_query = $con->prepare("
             SELECT a.appointment_id, a.appointment_date, a.appointment_time, 
-                   s.service_category, a.status, a.created_at
+                   s.service_category, a.status, a.created_at,
+                   p.method as payment_method, p.status as payment_status
             FROM appointments a
             INNER JOIN services s ON a.service_id = s.service_id
+            LEFT JOIN payment p ON a.appointment_id = p.appointment_id
             WHERE a.patient_id = ?
             ORDER BY 
                 CASE 
@@ -170,21 +174,41 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
 
                 <?php if (!empty($recent_appointments)): ?>
                     <?php foreach ($recent_appointments as $recent_appointment): ?>
+                        <?php
+                        $status = $recent_appointment['status'];
+                        $payment_method = $recent_appointment['payment_method'] ?? null;
+                        $payment_status = $recent_appointment['payment_status'] ?? null;
+                        
+                        // Check if cash payment and not paid yet (check both lowercase and uppercase for safety)
+                        $isCashUnpaid = ($payment_method == 'Cash' && (strtolower($payment_status) == 'pending' || $payment_status == null));
+                        
+                        // Calculate deadline (2 days before appointment)
+                        $appointment_date = $recent_appointment['appointment_date'];
+                        $deadline_date = null;
+                        $deadline_formatted = '';
+                        if ($isCashUnpaid && $appointment_date) {
+                            $appointmentDateObj = new DateTime($appointment_date);
+                            $deadlineDateObj = clone $appointmentDateObj;
+                            $deadlineDateObj->modify('-2 days');
+                            $deadline_formatted = $deadlineDateObj->format('F j, Y');
+                        }
+                        
+                        $statusClass = match($status) {
+                            'Pending' => 'status-pending',
+                            'Confirmed' => 'status-confirmed',
+                            'Cancelled' => 'status-cancelled',
+                            'Complete' => 'status-completed',
+                            'Completed' => 'status-completed',
+                            'Reschedule' => 'status-reschedule',
+                            default => 'status-default'
+                        };
+                        
+                        // Determine if buttons should be disabled
+                        $buttonsDisabled = ($status == 'Cancelled' || $status == 'Complete' || $status == 'Completed' || $isCashUnpaid);
+                        ?>
                         <div class="appointment-card" style="margin-bottom: 20px;">
                             <div class="appointment-header">
                                 <h3>Appointment #<?= htmlspecialchars($recent_appointment['appointment_id']); ?></h3>
-                                <?php
-                                $status = $recent_appointment['status'];
-                                $statusClass = match($status) {
-                                    'Pending' => 'status-pending',
-                                    'Confirmed' => 'status-confirmed',
-                                    'Cancelled' => 'status-cancelled',
-                                    'Complete' => 'status-completed',
-                                    'Completed' => 'status-completed',
-                                    'Reschedule' => 'status-reschedule',
-                                    default => 'status-default'
-                                };
-                                ?>
                                 <span class="status-badge <?= $statusClass; ?>"><?= htmlspecialchars($status); ?></span>
                             </div>
                             
@@ -209,7 +233,16 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
                             
                             <div class="appointment-message">
                                 <?php
-                                if ($status == "Pending") {
+                                if ($isCashUnpaid) {
+                                    // Show cash payment notice
+                                    echo "<div style='background-color: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; margin: 15px 0;'>";
+                                    echo "<p style='color: #856404; margin: 0; line-height: 1.6;'><strong>⚠️ Appointment Slot Reserved!</strong></p>";
+                                    echo "<p style='color: #856404; margin: 10px 0 0 0; line-height: 1.6;'>Please pay at least 2 days before your appointment date (" . date('F j, Y', strtotime($appointment_date)) . ") at the branch.</p>";
+                                    echo "<p style='color: #856404; margin: 5px 0 0 0; line-height: 1.6;'><strong>Payment deadline: " . $deadline_formatted . "</strong></p>";
+                                    echo "<p style='color: #856404; margin: 5px 0 0 0; line-height: 1.6;'>Your slot will be cancelled if payment is not received on time.</p>";
+                                    echo "<p style='color: #856404; margin: 5px 0 0 0; line-height: 1.6;'>Appointment ID: " . htmlspecialchars($recent_appointment['appointment_id']) . " (Status: Pending - Cash Payment Required)</p>";
+                                    echo "</div>";
+                                } elseif ($status == "Pending") {
                                     echo "<p>Your appointment has been scheduled. Please wait for confirmation.</p>";
                                 } elseif ($status == "Confirmed") {
                                     echo "<p>Your appointment has been confirmed.</p>";
@@ -225,13 +258,14 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
                             
                             <div class="appointment-actions">
                                 <a href="cancelAppointment.php?id=<?= $recent_appointment['appointment_id']; ?>" 
-                                   class="btn btn-danger <?= ($status == 'Cancelled' || $status == 'Complete' || $status == 'Completed') ? 'disabled' : ''; ?>"
-                                   <?= ($status == 'Cancelled' || $status == 'Complete' || $status == 'Completed') ? 'onclick="return false;"' : "onclick=\"return confirm('Are you sure you want to cancel?');\""; ?>>
+                                   class="btn btn-danger <?= $buttonsDisabled ? 'disabled' : ''; ?>"
+                                   <?= $buttonsDisabled ? 'onclick="return false;" style="opacity: 0.5; cursor: not-allowed;"' : "onclick=\"return confirm('Are you sure you want to cancel?');\""; ?>>
                                     Cancel Appointment
                                 </a>
 
                                 <a href="reschedule.php?id=<?= $recent_appointment['appointment_id']; ?>" 
-                                   class="btn btn-primary <?= ($status == 'Cancelled' || $status == 'Complete' || $status == 'Completed') ? 'disabled' : ''; ?>">
+                                   class="btn btn-primary <?= $buttonsDisabled ? 'disabled' : ''; ?>"
+                                   <?= $buttonsDisabled ? 'style="opacity: 0.5; cursor: not-allowed;"' : ''; ?>>
                                     Reschedule Appointment
                                 </a>
                             </div>

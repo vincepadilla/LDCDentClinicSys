@@ -78,38 +78,51 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $paymentNumber = mysqli_real_escape_string($con, trim($_POST['mayaNum']));
         $paymentAmount = (float)$_POST['mayaAmount'];
         $paymentRefNum = mysqli_real_escape_string($con, trim($_POST['mayarefNum']));
+    } elseif ($paymentMethod == 'Cash') {
+        // For cash payments, amount is the consultation fee
+        $paymentAmount = 500;
     }
 
-    // Handle Proof Image
+    // Handle Proof Image (not required for Cash payments)
     $proofImagePath = '';
-    $proofField = $paymentMethod == 'GCash' ? 'proofImage' : 'proofImageMaya';
+    $isCashPayment = ($paymentMethod == 'Cash');
+    
+    if (!$isCashPayment) {
+        $proofField = $paymentMethod == 'GCash' ? 'proofImage' : 'proofImageMaya';
 
-    if (isset($_FILES[$proofField]) && $_FILES[$proofField]['error'] == UPLOAD_ERR_OK) {
-        $img = $_FILES[$proofField];
-        $imgName = basename($img['name']);
-        $imgExt = strtolower(pathinfo($imgName, PATHINFO_EXTENSION));
-        $allowed = ['jpg', 'jpeg', 'png', 'webp'];
+        if (isset($_FILES[$proofField]) && $_FILES[$proofField]['error'] == UPLOAD_ERR_OK) {
+            $img = $_FILES[$proofField];
+            $imgName = basename($img['name']);
+            $imgExt = strtolower(pathinfo($imgName, PATHINFO_EXTENSION));
+            $allowed = ['jpg', 'jpeg', 'png', 'webp'];
 
-        if (in_array($imgExt, $allowed)) {
-            $safeName = uniqid() . "_" . preg_replace("/[^A-Za-z0-9_\-\.]/", '_', $imgName);
-            $uploadDir = "uploads/";
-            if (!is_dir($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
+            if (in_array($imgExt, $allowed)) {
+                $safeName = uniqid() . "_" . preg_replace("/[^A-Za-z0-9_\-\.]/", '_', $imgName);
+                $uploadDir = "uploads/";
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0755, true);
+                }
+                $proofImagePath = $uploadDir . $safeName;
+                move_uploaded_file($img['tmp_name'], $proofImagePath);
+            } else {
+                echo "<script>alert('Invalid file type for proof image.');
+                window.location.href='index.php#appointment';</script>";
+                exit();
             }
-            $proofImagePath = $uploadDir . $safeName;
-            move_uploaded_file($img['tmp_name'], $proofImagePath);
-        } else {
-            echo "<script>alert('Invalid file type for proof image.');
-            window.location.href='index.php#appointment';</script>";
-            exit();
         }
     }
 
-    // Validation
+    // Validation (proof image not required for Cash payments)
     if (empty($fname) || empty($lname) || empty($gender) || empty($email) || empty($phone) ||
         empty($address) || empty($date) || empty($time) || empty($service_id) || empty($subService) 
-        || empty($paymentMethod) || empty($proofImagePath)) {
+        || empty($paymentMethod)) {
         echo "<script>alert('All required fields must be filled');</script>";
+        exit();
+    }
+    
+    // For non-cash payments, proof image is required
+    if (!$isCashPayment && empty($proofImagePath)) {
+        echo "<script>alert('Please upload payment proof image.');</script>";
         exit();
     }
 
@@ -149,19 +162,78 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if ($patientInsertSuccess) {
         // === APPOINTMENT INSERT ===
+        // For Cash payments, create appointment with "Pending" status but marked as cash reservation
+        // The appointment will remain "Pending" until cash payment is confirmed at branch
+        // For GCash/PayMaya, create appointment with "Pending" status (normal flow)
         $appointment_id = generateID('A', 'appointments', 'appointment_id', $con);
+        $appointmentStatus = 'Pending'; // Use Pending for both, but cash requires branch payment confirmation
+        
         $insertAppointment = "INSERT INTO appointments 
             (appointment_id, patient_id, team_id, service_id, branch, appointment_date, appointment_time, time_slot, status)
             VALUES 
-            ('$appointment_id', '$patient_id', '$team_id', '$service_id', '$branch', '$date', '$time', '$time_slot', 'Pending')";
+            ('$appointment_id', '$patient_id', '$team_id', '$service_id', '$branch', '$date', '$time', '$time_slot', '$appointmentStatus')";
 
-        if (mysqli_query($con, $insertAppointment)) {
-            // === PAYMENT INSERT ===
+        $appointmentInserted = mysqli_query($con, $insertAppointment);
+        
+        if (!$appointmentInserted) {
+            error_log('Appointment error: ' . mysqli_error($con));
+            echo "<script>alert('Error booking appointment. Please try again.');
+            window.location.href='index.php#appointment';</script>";
+            exit();
+        }
+
+        // === PAYMENT INSERT ===
+        if ($isCashPayment) {
+            // For Cash: Create payment record linked to reserved appointment
+            // Appointment status is "Reserved" - will be changed to "Pending" when payment is confirmed
             $payment_id = generateID('PY', 'payment', 'payment_id', $con);
             $insertPayment = "INSERT INTO payment 
                 (payment_id, appointment_id, method, account_name, account_number, amount, reference_no, proof_image, status)
                 VALUES 
-                ('$payment_id', '$appointment_id', '$paymentMethod', '$paymentAccName', '$paymentNumber', '$paymentAmount', '$paymentRefNum', '$proofImagePath', 'Pending')";
+                ('$payment_id', '$appointment_id', '$paymentMethod', '', '', '$paymentAmount', '', '', 'pending')";
+
+            if (mysqli_query($con, $insertPayment)) {
+                // Notification for cash reservation
+                if (!empty($userID)) {
+                    $getDentistQuery = "SELECT first_name, last_name FROM multidisciplinary_dental_team WHERE team_id = '$team_id'";
+                    $dentistResult = mysqli_query($con, $getDentistQuery);
+                    $dentistRow = mysqli_fetch_assoc($dentistResult);
+                    $dentistName = 'Dr. ' . ($dentistRow['first_name'] ?? '') . ' ' . ($dentistRow['last_name'] ?? '');
+                    $dentistName = mysqli_real_escape_string($con, trim($dentistName));
+                    
+                    $notification_id = generateID('N', 'notifications', 'notification_id', $con);
+                    $userID_escaped = mysqli_real_escape_string($con, $userID);
+                    $date_escaped = mysqli_real_escape_string($con, $date);
+                    $time_escaped = mysqli_real_escape_string($con, $time);
+                    
+                    $insertNotification = "INSERT INTO notifications 
+                        (notification_id, user_id, type, appointment_date, appointment_time, dentist_name, is_read, created_at)
+                        VALUES 
+                        ('$notification_id', '$userID_escaped', 'reserve', '$date_escaped', '$time_escaped', '$dentistName', 0, NOW())";
+                    
+                    mysqli_query($con, $insertNotification);
+                }
+                
+                // Calculate deadline date (2 days before appointment)
+                $appointmentDate = new DateTime($date);
+                $deadlineDate = clone $appointmentDate;
+                $deadlineDate->modify('-2 days');
+                $deadlineFormatted = $deadlineDate->format('F j, Y');
+                
+                echo "<script>alert('Appointment Slot Reserved! Please pay at least 2 days before your appointment date ($date) at the branch. Payment deadline: $deadlineFormatted. Your slot will be cancelled if payment is not received on time. Appointment ID: $appointment_id (Status: Pending - Cash Payment Required)');
+                window.location.href='../login/account.php';</script>";
+            } else {
+                error_log('Payment error: ' . mysqli_error($con));
+                echo "<script>alert('Error saving reservation. Try again.');
+                window.location.href='index.php#appointment';</script>";
+            }
+        } else {
+            // For GCash and PayMaya: Normal flow with appointment
+            $payment_id = generateID('PY', 'payment', 'payment_id', $con);
+            $insertPayment = "INSERT INTO payment 
+                (payment_id, appointment_id, method, account_name, account_number, amount, reference_no, proof_image, status)
+                VALUES 
+                ('$payment_id', '$appointment_id', '$paymentMethod', '$paymentAccName', '$paymentNumber', '$paymentAmount', '$paymentRefNum', '$proofImagePath', 'pending')";
 
             if (mysqli_query($con, $insertPayment)) {
                 // === NOTIFICATION INSERT ===
@@ -192,10 +264,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 echo "<script>alert('Error saving payment. Try again.');
                 window.location.href='index.php#appointment';</script>";
             }
-        } else {
-            error_log('Appointment error: ' . mysqli_error($con));
-            echo "<script>alert('Error booking appointment. Please try again.');
-            window.location.href='index.php#appointment';</script>";
         }
     } else {
         error_log('Patient error: ' . mysqli_error($con));

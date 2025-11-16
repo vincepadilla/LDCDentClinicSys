@@ -230,6 +230,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                             <option value="">Select payment method</option>
                             <option value="GCash">GCash</option>
                             <option value="PayMaya">PayMaya</option>
+                            <option value="Cash">Pay Cash Via Branch</option>
                         </select>
                     </div>
 
@@ -348,7 +349,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                                     <label for="mayaConfirm">I confirm that the above details are correct and I agree to proceed with the payment.</label>
                                 </div>
                                 
-                                <button type="submit" class="pay-button" id="mayaPayBtn" disabled>Pay Now</button>
+                                <button type="submit" class="pay-button" id="mayaPayBtn" disabled>Submit</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cash Payment Section -->
+                    <div id="cashDetails" class="payment-details" style="display: none;">
+                        <div class="payment-option">
+                            <div class="payment-header">
+                                <div class="payment-logo">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                    <span>Cash Payment</span>
+                                </div>
+                            </div>
+                            
+                            <div class="cash-notice" style="background-color: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                                <h4 style="color: #856404; margin-top: 0; margin-bottom: 15px;">
+                                    <i class="fas fa-exclamation-triangle"></i> Important Payment Notice
+                                </h4>
+                                <p style="color: #856404; margin: 10px 0; line-height: 1.6;">
+                                    <strong>Please note:</strong> For cash payments, you must pay at the branch <strong>at least 2 days before</strong> your preferred appointment date and time. 
+                                    Failure to pay within this timeframe will result in automatic cancellation of your reserved slot.
+                                </p>
+                                <p style="color: #856404; margin: 10px 0; line-height: 1.6;">
+                                    Your appointment will only be confirmed and added to the schedule once payment is received and verified by our staff.
+                                </p>
+                            </div>
+                            
+                            <div class="payment-form">
+                                <div class="confirmation-checkbox">
+                                    <input type="checkbox" id="cashConfirm" onchange="togglePayButton('cash')">
+                                    <label for="cashConfirm">I understand that I must pay at least 2 days before my appointment date, otherwise my slot will be cancelled. I agree to proceed with the reservation.</label>
+                                </div>
+                                
+                                <button type="submit" class="pay-button" id="cashPayBtn" disabled>Reserve Appointment</button>
                             </div>
                         </div>
                     </div>
@@ -389,14 +424,17 @@ paymentMethodSelect.addEventListener('change', function () {
     const method = this.value;
     document.getElementById('gcashDetails').style.display = 'none';
     document.getElementById('mayaDetails').style.display = 'none';
+    document.getElementById('cashDetails').style.display = 'none';
 
     toggleFields(gcashFields, false);
     toggleFields(mayaFields, false);
 
     document.getElementById('gcashPayBtn').disabled = true;
     document.getElementById('mayaPayBtn').disabled = true;
+    document.getElementById('cashPayBtn').disabled = true;
     document.getElementById('gcashConfirm').checked = false;
     document.getElementById('mayaConfirm').checked = false;
+    document.getElementById('cashConfirm').checked = false;
 
     if (method === 'GCash') {
         document.getElementById('gcashDetails').style.display = 'block';
@@ -404,6 +442,8 @@ paymentMethodSelect.addEventListener('change', function () {
     } else if (method === 'PayMaya') {
         document.getElementById('mayaDetails').style.display = 'block';
         toggleFields(mayaFields, true);
+    } else if (method === 'Cash') {
+        document.getElementById('cashDetails').style.display = 'block';
     }
 });
 

@@ -232,10 +232,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         </div>
     </section>
 
-    
-
-    <section>
-
     <section class="location-section" id="location">
         <div class="container">
             <div class="section-title">
@@ -578,10 +574,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
 
         if (service === "S001") {
             subServiceSelect.innerHTML += '<option value="Checkups">Checkups</option>';
-            subServiceSelect.innerHTML += '<option value="Cleaning">Oral Prophylaxis (Cleaning)</option>';
-            subServiceSelect.innerHTML += '<option value="Flouride">Flouride Application</option>';
-            subServiceSelect.innerHTML += '<option value="Pit and Fissure Sealants">Pit & Fissure Sealants</option>';
-            subServiceSelect.innerHTML += '<option value="Tooth Restoration">Tooth Restoration (Pasta)</option>';
+            subServiceSelect.innerHTML += '<option value="Oral Prophylaxis (Cleaning)">Oral Prophylaxis (Cleaning)</option>';
+            subServiceSelect.innerHTML += '<option value="Fluoride Application">Flouride Application</option>';
+            subServiceSelect.innerHTML += '<option value="Pit & Fissure Sealants">Pit & Fissure Sealants</option>';
+            subServiceSelect.innerHTML += '<option value="Tooth Restoration (Pasta)">Tooth Restoration (Pasta)</option>';
             subServiceContainer.style.display = 'block';
 
         } else if (service === "S002") {
@@ -590,7 +586,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             subServiceContainer.style.display = 'block';
 
         } else if(service == "S003") {
-            subServiceSelect.innerHTML += '<option value="Tooth Extraction">Tooth Extraction(Bunot)</option>';
+            subServiceSelect.innerHTML += '<option value="Tooth Extraction (Bunot)">Tooth Extraction (Bunot)</option>';
             subServiceContainer.style.display = 'block';
 
         } else if(service == "S004") {
