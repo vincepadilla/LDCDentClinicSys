@@ -244,7 +244,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             </div>
             <div class="location-grid">
                 <div class="map-wrapper">
-                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3861.234567890123!2d121.01234567890123!3d14.56789012345678!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMTTCsDM0JzA0LjQiTiAxMjHCsDAwJzQ1LjYiRQ!5e0!3m2!1sen!2sph!4v1234567890123!5m2!1sen!2sph"
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3670.79139120257!2d121.06162947487168!3d14.549215285931064!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397c9b949abde59%3A0x858201c5605ed9f2!2sLandero%20Dental%20Clinic!5e1!3m2!1sen!2sph!4v1763285594933!5m2!1sen!2sph"
                         allowfullscreen=""
                         loading="lazy"
                         referrerpolicy="no-referrer-when-downgrade"></iframe>
@@ -252,9 +252,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                 <div class="location-details">
                     <h3>Main Address</h3>
                     <ul>
-                        <li><i class="fas fa-map-marker-alt"></i><span>Doroteo Jose St, Santa Cruz, Metro Manila 1003</span></li>
-                        <li><i class="fas fa-map-marker-alt"></i><span>Anahaw St., Comembo, Taguig City</span></li>
-                        <li><i class="fas fa-map-marker-alt"></i><span>Taytay Rizal Branch</span></li>
+                        <li><i class="fas fa-map-marker-alt"></i><span><strong>Comembo Branch: </strong>Anahaw St. Comembo, Taguig City</span></li>
+                        <li><i class="fas fa-map-marker-alt"></i><span><strong>Taytay Branch: </strong> Lot 2 Block 5, Turquoise Corner, Golden City Subd, Amber, Dolores, Taytay, 1920 Rizal</span></li>
                         <li><i class="fas fa-phone"></i><span>0922 861 1987</span></li>
                         <li><i class="fas fa-envelope"></i><span>landerodentalclinic@gmail.com</span></li>
                     </ul>
