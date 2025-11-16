@@ -985,7 +985,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             <div style="display: flex; gap: 10px; margin-top: 10px;">
                 <div style="flex: 1;">
                     <label for="editEmail">Email:</label>
-                    <input type="text" name="email" id="editEmail" required>
+                    <input type="email" name="email" id="editEmail" required>
                 </div>
 
                 <div style="flex: 1;">
@@ -1106,48 +1106,63 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 
 <!-- Add Staff Modal -->
 <div id="addDentistModal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <h3>ADD DENTIST/STAFF</h3>
+    <div class="modal-content" style="max-width: 800px; width: 90%; margin: 2% auto; padding: 30px;">
+        <h3 style="font-size: 24px; margin-bottom: 25px; text-align: center; ">ADD DENTIST/STAFF</h3>
         <form action="addStaff.php" method="POST">
-            <div style="display: flex; gap: 10px;">
+            <!-- User ID Section -->
+            <div style="display: flex; gap: 20px; margin-bottom: 20px;">
                 <div style="flex: 1;">
-                    <label for="addFirstName">First Name:</label>
-                    <input type="text" name="first_name" id="addFirstName" required>
-                </div>
-                <div style="flex: 1;">
-                    <label for="addLastName">Last Name:</label>
-                    <input type="text" name="last_name" id="addLastName" required>
+                    <label for="userid" style="display: block; margin-bottom: 8px; font-weight: 600; color: #495057;">User ID</label>
+                    <select name="userid" id="userid" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
+                        <option value="">Select User ID</option>
+                        <!-- Admin users will be populated here by JavaScript -->
+                    </select>
                 </div>
             </div>
 
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <!-- Name Section -->
+            <div style="display: flex; gap: 20px; margin-bottom: 20px;">
                 <div style="flex: 1;">
-                    <label for="addSpecialization">Specialization:</label>
-                    <input type="text" name="specialization" id="addSpecialization" required>
+                    <label for="addFirstName" style="display: block; margin-bottom: 8px; font-weight: 600; color: #495057;">First Name:</label>
+                    <input type="text" name="first_name" id="addFirstName" required readonly style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; background-color: #f8f9fa;">
                 </div>
                 <div style="flex: 1;">
-                    <label for="addStatus">Status:</label>
-                    <select name="status" id="addStatus" required>
+                    <label for="addLastName" style="display: block; margin-bottom: 8px; font-weight: 600; color: #495057;">Last Name:</label>
+                    <input type="text" name="last_name" id="addLastName" required readonly style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; background-color: #f8f9fa;">
+                </div>
+            </div>
+
+            <!-- Specialization & Email Section -->
+            <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+                <div style="flex: 1;">
+                    <label for="addSpecialization" style="display: block; margin-bottom: 8px; font-weight: 600; color: #495057;">Specialization:</label>
+                    <input type="text" name="specialization" id="addSpecialization" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
+                </div>
+                <div style="flex: 1;">
+                    <label for="addEmail" style="display: block; margin-bottom: 8px; font-weight: 600; color: #495057;">Email:</label>
+                    <input type="email" name="email" id="addEmail" required readonly style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; background-color: #f8f9fa;">
+                </div>
+            </div>
+
+            <!-- Phone & Status Section -->
+            <div style="display: flex; gap: 20px; margin-bottom: 25px;">
+                <div style="flex: 1;">
+                    <label for="addPhone" style="display: block; margin-bottom: 8px; font-weight: 600; color: #495057;">Phone:</label>
+                    <input type="text" name="phone" id="addPhone" required readonly style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; background-color: #f8f9fa;">
+                </div>
+                <div style="flex: 1;">
+                    <label for="addStatus" style="display: block; margin-bottom: 8px; font-weight: 600; color: #495057;">Status:</label>
+                    <select name="status" id="addStatus" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                     </select>
                 </div>
             </div>
 
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <div style="flex: 1;">
-                    <label for="addEmail">Email:</label>
-                    <input type="email" name="email" id="addEmail" required>
-                </div>
-                <div style="flex: 1;">
-                    <label for="addPhone">Phone:</label>
-                    <input type="text" name="phone" id="addPhone" required>
-                </div>
-            </div>
-
-            <div style="margin-top: 15px;">
-                <button type="submit" class="btn btn-success">Add Staff</button>
-                <button type="button" onclick="closeDentistModal()" class="modal-close-btn">Close</button>
+            <!-- Buttons -->
+            <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 25px; padding-top: 20px; border-top: 1px solid #eaeaea;">
+                <button type="submit" class="btn btn-success" style="padding: 12px 30px; font-size: 16px; font-weight: 600;">Add Staff</button>
+                <button type="button" onclick="closeDentistModal()" class="modal-close-btn" style="padding: 12px 30px; font-size: 16px; font-weight: 600; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
             </div>
         </form>
     </div>
@@ -1155,50 +1170,55 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 
 <!-- Edit Dentist Modal -->
 <div id="editDentistModal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <h3>EDIT DENTIST/STAFF</h3>
+    <div class="modal-content" style="max-width: 800px; width: 90%; margin: 2% auto; padding: 30px;">
+        <h3 style="font-size: 24px; margin-bottom: 25px; text-align: center; ">EDIT DENTIST/STAFF</h3>
         <form id="editDentistForm" method="POST" action="updateStaff.php">
             <input type="hidden" name="team_id" id="editDentistId">
+            <input type="hidden" name="user_id" id="editDentistUserId">
 
-            <div style="display: flex; gap: 10px;">
+            <!-- Name Section -->
+            <div style="display: flex; gap: 20px; margin-bottom: 20px;">
                 <div style="flex: 1;">
-                    <label for="editDentistFirstName">First Name:</label>
-                    <input type="text" name="first_name" id="editDentistFirstName" required>
+                    <label for="editDentistFirstName" style="display: block; margin-bottom: 8px; font-weight: 600; color: #495057;">First Name:</label>
+                    <input type="text" name="first_name" id="editDentistFirstName" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
                 </div>
                 <div style="flex: 1;">
-                    <label for="editDentistLastName">Last Name:</label>
-                    <input type="text" name="last_name" id="editDentistLastName" required>
+                    <label for="editDentistLastName" style="display: block; margin-bottom: 8px; font-weight: 600; color: #495057;">Last Name:</label>
+                    <input type="text" name="last_name" id="editDentistLastName" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
                 </div>
             </div>
 
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <!-- Specialization & Status Section -->
+            <div style="display: flex; gap: 20px; margin-bottom: 20px;">
                 <div style="flex: 1;">
-                    <label for="editDentistSpecialization">Specialization:</label>
-                    <input type="text" name="specialization" id="editDentistSpecialization" required>
+                    <label for="editDentistSpecialization" style="display: block; margin-bottom: 8px; font-weight: 600; color: #495057;">Specialization:</label>
+                    <input type="text" name="specialization" id="editDentistSpecialization" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
                 </div>
                 <div style="flex: 1;">
-                    <label for="editDentistStatus">Status:</label>
-                    <select name="status" id="editDentistStatus" required>
+                    <label for="editDentistStatus" style="display: block; margin-bottom: 8px; font-weight: 600; color: #495057;">Status:</label>
+                    <select name="status" id="editDentistStatus" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                     </select>
                 </div>
             </div>
 
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <!-- Email & Phone Section -->
+            <div style="display: flex; gap: 20px; margin-bottom: 25px;">
                 <div style="flex: 1;">
-                    <label for="editDentistEmail">Email:</label>
-                    <input type="email" name="email" id="editDentistEmail" required>
+                    <label for="editDentistEmail" style="display: block; margin-bottom: 8px; font-weight: 600; color: #495057;">Email:</label>
+                    <input type="email" name="email" id="editDentistEmail" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
                 </div>
                 <div style="flex: 1;">
-                    <label for="editDentistPhone">Phone:</label>
-                    <input type="text" name="phone" id="editDentistPhone" required>
+                    <label for="editDentistPhone" style="display: block; margin-bottom: 8px; font-weight: 600; color: #495057;">Phone:</label>
+                    <input type="text" name="phone" id="editDentistPhone" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
                 </div>
             </div>
 
-            <div style="margin-top: 15px;">
-                <button type="submit" class="btn btn-success">Update Details</button>
-                <button type="button" onclick="closeEditDentistModal()" class="modal-close-btn">Close</button>
+            <!-- Buttons -->
+            <div style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 25px; padding-top: 20px; border-top: 1px solid #eaeaea;">
+                <button type="submit" class="btn btn-success" style="padding: 12px 30px; font-size: 16px; font-weight: 600; color: white; border: none; border-radius: 6px; cursor: pointer;">Update Details</button>
+                <button type="button" onclick="closeEditDentistModal()" class="modal-close-btn" style="padding: 12px 30px; font-size: 16px; font-weight: 600; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">Close</button>
             </div>
         </form>
     </div>
@@ -2854,15 +2874,6 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             });
         }
 
-        // Add Dentist Modal
-        const openDentistBtn = document.getElementById('openAddDentistBtn');
-        const dentistModal = document.getElementById('addDentistModal');
-        
-        if (openDentistBtn) {
-            openDentistBtn.addEventListener('click', function () {
-                dentistModal.style.display = 'block';
-            });
-        }
 
         // Close modals when clicking outside
         window.addEventListener('click', function (event) {
@@ -2887,9 +2898,6 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         document.getElementById('addServiceModal').style.display = 'none';
     }
 
-    function closeDentistModal() {
-        document.getElementById('addDentistModal').style.display = 'none';
-    }
 
     function closeEditModal() {
     document.getElementById('editServiceModal').style.display = 'none';
@@ -3048,10 +3056,194 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             form.submit();
         }
     }
+
+    // Add Staffs Modal
+    async function populateAdminUsers() {
+    try {
+        console.log('Fetching admin users...');
+        const response = await fetch('getadminUsers.php');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // Check if response is actually JSON
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            const text = await response.text();
+            console.error('Expected JSON but got:', text);
+            throw new Error('Server returned non-JSON response. Check PHP errors.');
+        }
+        
+        const adminUsers = await response.json();
+        console.log('Admin users received:', adminUsers);
+        
+        // Check if response contains an error
+        if (adminUsers && adminUsers.error) {
+            throw new Error(adminUsers.error);
+        }
+        
+        const userSelect = document.getElementById('userid');
+        
+        if (!userSelect) {
+            console.error('userid select element not found');
+            return;
+        }
+        
+        // Clear existing options
+        userSelect.innerHTML = '<option value="">Select User ID</option>';
+        
+        // Check if we have admin users
+        if (!adminUsers || adminUsers.length === 0) {
+            const option = document.createElement('option');
+            option.value = "";
+            option.textContent = "No admin users found";
+            option.disabled = true;
+            userSelect.appendChild(option);
+            console.warn('No admin users found in database');
+            return;
+        }
+        
+        // Populate dropdown with admin users
+        adminUsers.forEach(user => {
+            // Get user_id - check all possible field names and ensure it's not null/undefined
+            const userId = user.user_id || user.userID || user.id || null;
+            
+            // Skip if user_id is still null/undefined
+            if (!userId) {
+                console.warn('Skipping user with no user_id:', user);
+                return;
+            }
+            
+            const option = document.createElement('option');
+            option.value = String(userId); // Ensure it's a string
+            option.textContent = String(userId); // Display user_id
+            option.setAttribute('data-firstname', user.first_name || '');
+            option.setAttribute('data-lastname', user.last_name || '');
+            option.setAttribute('data-email', user.email || '');
+            option.setAttribute('data-phone', user.phone || '');
+            userSelect.appendChild(option);
+        });
+        
+        console.log(`Successfully loaded ${adminUsers.length} admin user(s)`);
+        
+    } catch (error) {
+        console.error('Error fetching admin users:', error);
+        console.error('Error stack:', error.stack);
+        alert('Error loading user data: ' + error.message);
+        
+        // Show error in dropdown
+        const userSelect = document.getElementById('userid');
+        if (userSelect) {
+            userSelect.innerHTML = '<option value="">Error loading users</option>';
+        }
+    }
+}
+
+    // Function to handle user selection change
+    function handleUserSelection() {
+        const userSelect = document.getElementById('userid');
+        const selectedOption = userSelect.options[userSelect.selectedIndex];
+        
+        if (selectedOption.value && selectedOption.value !== "") {
+            document.getElementById('addFirstName').value = selectedOption.getAttribute('data-firstname') || '';
+            document.getElementById('addLastName').value = selectedOption.getAttribute('data-lastname') || '';
+            document.getElementById('addEmail').value = selectedOption.getAttribute('data-email') || '';
+            document.getElementById('addPhone').value = selectedOption.getAttribute('data-phone') || '';
+        } else {
+            // Clear fields if no user selected
+            document.getElementById('addFirstName').value = '';
+            document.getElementById('addLastName').value = '';
+            document.getElementById('addEmail').value = '';
+            document.getElementById('addPhone').value = '';
+        }
+    }
+
+    // Modal open/close functionality
+    const openDentistBtn = document.getElementById('openAddDentistBtn');
+    const dentistModal = document.getElementById('addDentistModal');
+
+    if (openDentistBtn && dentistModal) {
+        openDentistBtn.addEventListener('click', function() {
+            dentistModal.style.display = 'block';
+            populateAdminUsers(); // Populate when modal opens
+        });
+    }
+
+    function closeDentistModal() {
+        if (dentistModal) {
+            dentistModal.style.display = 'none';
+        }
+        
+        // Reset form when closing
+        const userSelect = document.getElementById('userid');
+        if (userSelect) userSelect.selectedIndex = 0;
+        
+        const addFirstName = document.getElementById('addFirstName');
+        const addLastName = document.getElementById('addLastName');
+        const addEmail = document.getElementById('addEmail');
+        const addPhone = document.getElementById('addPhone');
+        const addSpecialization = document.getElementById('addSpecialization');
+        const addStatus = document.getElementById('addStatus');
+        
+        if (addFirstName) addFirstName.value = '';
+        if (addLastName) addLastName.value = '';
+        if (addEmail) addEmail.value = '';
+        if (addPhone) addPhone.value = '';
+        if (addSpecialization) addSpecialization.value = '';
+        if (addStatus) addStatus.selectedIndex = 0;
+    }
+
+    // Initialize event listeners when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        const userSelect = document.getElementById('userid');
+        if (userSelect) {
+            // Remove any existing event listeners and add new one
+            userSelect.removeEventListener('change', handleUserSelection);
+            userSelect.addEventListener('change', handleUserSelection);
+        }
+        
+        // Close modal when clicking outside
+        if (dentistModal) {
+            dentistModal.addEventListener('click', function(event) {
+                if (event.target === dentistModal) {
+                    closeDentistModal();
+                }
+            });
+        }
+    });
     
-    //For Staffs
-    function editDentist(dentistId) {
-        console.log('Edit dentist:', dentistId);
+    //For edit Staffs
+    function editDentist(teamId) {
+        console.log('Edit dentist:', teamId);
+        
+        // Fetch staff details via AJAX
+        fetch('getStaff.php?team_id=' + encodeURIComponent(teamId))
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    const staff = data.data;
+                    
+                    // Populate form fields
+                    document.getElementById('editDentistId').value = staff.team_id;
+                    document.getElementById('editDentistUserId').value = staff.user_id || '';
+                    document.getElementById('editDentistFirstName').value = staff.first_name || '';
+                    document.getElementById('editDentistLastName').value = staff.last_name || '';
+                    document.getElementById('editDentistSpecialization').value = staff.specialization || '';
+                    document.getElementById('editDentistEmail').value = staff.email || '';
+                    document.getElementById('editDentistPhone').value = staff.phone || '';
+                    document.getElementById('editDentistStatus').value = staff.status || 'active';
+                    
+                    // Show the modal
+                    document.getElementById('editDentistModal').style.display = 'block';
+                } else {
+                    alert('Error loading staff details: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching staff:', error);
+                alert('Error loading staff details: ' + error.message);
+            });
     }
 
     // Close sidebar when clicking outside on mobile

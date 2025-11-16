@@ -128,9 +128,7 @@ if (isset($_POST['submit'])) {
                         <div class="input-field">
                             <i class="fas fa-lock"></i>
                             <input type="password" name="password" id="password" placeholder="Enter your password" required>
-                            <button type="button" class="toggle-password">
-                                <i class="fas fa-eye"></i>
-                            </button>
+                            <button type="button" class="toggle-password"></button>
                         </div>
                     </div>
 

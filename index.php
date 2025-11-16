@@ -108,32 +108,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
 </head>
 <body>
     <!-- Header -->
-    <header>
-        <div class="container">
-            <nav class="navbar">
-                <a href="#" class="logo">
-                    <img src="landerologo.png" alt="Landero Dental Clinic Logo">
-                    <span>Landero Dental Clinic</span>
-                </a>
-                
-                <ul class="nav-links">
-                    <li><a href="#services">Services</a></li>
-                    <li><a href="#dentists">Dentists</a></li>
-                    <li><a href="#contact">Contact</a></li>
-                    <?php if (isset($_SESSION['valid'])): ?>
-                        <li><a href="login/account.php" class="nav-btn">Account</a></li> 
-                        <li class="login-status"><i class="fa-solid fa-user-check" aria-hidden="true"></i></li>
-                    <?php else: ?>
-                        <li><a href="login/login.php" class="nav-btn">Login</a></li> 
-                    <?php endif; ?>
-                </ul>
+<header>
+    <div class="container">
+        <nav class="navbar">
+            <a href="#" class="logo">
+                <img src="landerologo.png" alt="Landero Dental Clinic Logo">
+                <span>Landero Dental Clinic</span>
+            </a>
+            
+            <ul class="nav-links">
+                <li><a href="#services">Services</a></li>
+                <li><a href="#dentists">Dentists</a></li>
+                <li><a href="#contact">Contact</a></li>
+                <?php if (isset($_SESSION['valid'])): ?>
+                    <!-- Account link first -->
+                    <li><a href="login/account.php" class="nav-btn">Account</a></li>
+                    <!-- Notification icon after account -->
+                    <li class="notification-wrapper">
+                        <div class="notification-icon-container" id="notificationBtn">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge" id="notificationBadge">0</span>
+                        </div>
+                        <div class="notification-dropdown" id="notificationDropdown">
+                            <div class="notification-header">
+                                <h3>Notifications</h3>
+                                <button class="mark-all-read" id="markAllRead">Mark all as read</button>
+                            </div>
+                            <div class="notification-list" id="notificationList">
+                                <!-- Notifications will be populated here -->
+                                <div class="notification-empty">
+                                    <i class="fas fa-bell-slash"></i>
+                                    <p>No new notifications</p>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                <?php else: ?>
+                    <!-- Login link for non-logged in users -->
+                    <li><a href="login/login.php" class="nav-btn">Login</a></li>
+                <?php endif; ?>
+            </ul>
 
-                <div class="menu-toggle">
-                    <i class="fas fa-bars"></i>
-                </div>
-            </nav>
-        </div>
-    </header>
+            <div class="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </div>
+        </nav>
+    </div>
+</header>
 
     <!-- Hero Section -->
     <section class="hero" id="home">
@@ -630,6 +651,283 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
             }
         });
     }
+
+    // Notification System
+    <?php if (isset($_SESSION['valid'])): ?>
+    (function() {
+        const notificationBtn = document.getElementById('notificationBtn');
+        const notificationDropdown = document.getElementById('notificationDropdown');
+        const notificationBadge = document.getElementById('notificationBadge');
+        const notificationList = document.getElementById('notificationList');
+        const markAllReadBtn = document.getElementById('markAllRead');
+        
+        // Fetch real notifications from server
+        async function fetchNotifications() {
+            try {
+                const response = await fetch('getNotifications.php');
+                const data = await response.json();
+                
+                if (data.success) {
+                    return data.notifications;
+                } else {
+                    console.error('Error fetching notifications:', data.error);
+                    return [];
+                }
+            } catch (error) {
+                console.error('Error fetching notifications:', error);
+                return [];
+            }
+        }
+
+        // Update notification count
+        function updateNotificationCount(notifications) {
+            if (!notificationBadge) return;
+            const unreadCount = notifications.filter(n => !n.is_read).length; // Fixed: changed 'read' to 'is_read'
+            notificationBadge.textContent = unreadCount;
+            notificationBadge.style.display = unreadCount > 0 ? 'flex' : 'none';
+        }
+
+        // Get notification icon and type based on appointment status
+        function getNotificationDetails(status) { // Removed unused 'type' parameter
+            switch(status) {
+                case 'booked':
+                    return {
+                        icon: 'calendar-plus',
+                        type: 'info',
+                        title: 'Appointment Booked'
+                    };
+                case 'confirmed':
+                    return {
+                        icon: 'check-circle',
+                        type: 'success',
+                        title: 'Appointment Confirmed'
+                    };
+                case 'cancelled':
+                    return {
+                        icon: 'times-circle',
+                        type: 'warning',
+                        title: 'Appointment Cancelled'
+                    };
+                case 'completed':
+                    return {
+                        icon: 'clipboard-check',
+                        type: 'success',
+                        title: 'Appointment Completed'
+                    };
+                case 'rescheduled':
+                    return {
+                        icon: 'calendar-alt',
+                        type: 'info',
+                        title: 'Appointment Rescheduled'
+                    };
+                case 'reminder':
+                    return {
+                        icon: 'bell',
+                        type: 'info',
+                        title: 'Appointment Reminder'
+                    };
+                default:
+                    return {
+                        icon: 'info-circle',
+                        type: 'info',
+                        title: 'Notification'
+                    };
+            }
+        }
+
+        // Format notification message based on type and data
+        function formatNotificationMessage(notification) {
+            const { type, appointment_date, appointment_time, dentist_name, reason, new_date, new_time } = notification;
+            
+            switch(type) {
+                case 'booked':
+                    return `Your appointment with Dr. ${dentist_name} on ${appointment_date} at ${appointment_time} has been successfully booked.`;
+                case 'confirmed':
+                    return `Your appointment with Dr. ${dentist_name} on ${appointment_date} at ${appointment_time} has been confirmed.`;
+                case 'cancelled':
+                    return `Your appointment on ${appointment_date} at ${appointment_time} has been cancelled. ${reason ? `Reason: ${reason}` : ''}`;
+                case 'completed':
+                    return `Your appointment with Dr. ${dentist_name} on ${appointment_date} has been completed. Thank you for visiting us!`;
+                case 'rescheduled':
+                    return `Your appointment has been rescheduled to ${new_date} at ${new_time}.`;
+                case 'reminder':
+                    return `Reminder: You have an appointment with Dr. ${dentist_name} tomorrow at ${appointment_time}.`;
+                default:
+                    return notification.message || 'You have a new notification.';
+            }
+        }
+
+        // Render notifications
+        function renderNotifications(notifications) {
+            if (!notificationList) return;
+            
+            const unreadNotifications = notifications.filter(n => !n.is_read); // Fixed: changed 'read' to 'is_read'
+            const readNotifications = notifications.filter(n => n.is_read); // Fixed: changed 'read' to 'is_read'
+            
+            if (notifications.length === 0) {
+                notificationList.innerHTML = `
+                    <div class="notification-empty">
+                        <i class="fas fa-bell-slash"></i>
+                        <p>No new notifications</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            
+            // Unread notifications first
+            unreadNotifications.forEach(notif => {
+                const details = getNotificationDetails(notif.type);
+                const message = formatNotificationMessage(notif);
+                
+                html += `
+                    <div class="notification-item unread" data-id="${notif.notification_id}"> <!-- Fixed: changed 'id' to 'notification_id' -->
+                        <div class="notification-icon ${details.type}">
+                            <i class="fas fa-${details.icon}"></i>
+                        </div>
+                        <div class="notification-content">
+                            <h4>${details.title}</h4>
+                            <p>${message}</p>
+                            <span class="notification-time">${notif.created_at}</span>
+                        </div>
+                        <button class="notification-mark-read" data-id="${notif.notification_id}"> <!-- Fixed: changed 'id' to 'notification_id' -->
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+            });
+
+            // Read notifications
+            readNotifications.forEach(notif => {
+                const details = getNotificationDetails(notif.type);
+                const message = formatNotificationMessage(notif);
+                
+                html += `
+                    <div class="notification-item" data-id="${notif.notification_id}"> <!-- Fixed: changed 'id' to 'notification_id' -->
+                        <div class="notification-icon ${details.type}">
+                            <i class="fas fa-${details.icon}"></i>
+                        </div>
+                        <div class="notification-content">
+                            <h4>${details.title}</h4>
+                            <p>${message}</p>
+                            <span class="notification-time">${notif.created_at}</span>
+                        </div>
+                        <button class="notification-mark-read" data-id="${notif.notification_id}"> <!-- Fixed: changed 'id' to 'notification_id' -->
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+            });
+
+            notificationList.innerHTML = html;
+            updateNotificationCount(notifications);
+            
+            // Add event listeners to mark as read buttons
+            document.querySelectorAll('.notification-mark-read').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const id = this.getAttribute('data-id'); // Fixed: removed parseInt for VARCHAR
+                    markAsRead(id, notifications);
+                });
+            });
+        }
+
+        // Mark notification as read
+        async function markAsRead(id, notifications) {
+            try {
+                const response = await fetch('markNotificationRead.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ notification_id: id })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const notification = notifications.find(n => n.notification_id === id); // Fixed: changed 'id' to 'notification_id'
+                    if (notification) {
+                        notification.is_read = true; // Fixed: changed 'read' to 'is_read'
+                        renderNotifications(notifications);
+                    }
+                }
+            } catch (error) {
+                console.error('Error marking notification as read:', error);
+            }
+        }
+
+        // Mark all as read
+        if (markAllReadBtn) {
+            markAllReadBtn.addEventListener('click', async function() {
+                try {
+                    const response = await fetch('markAllNotificationsRead.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        // Refresh notifications
+                        const notifications = await fetchNotifications();
+                        renderNotifications(notifications);
+                    }
+                } catch (error) {
+                    console.error('Error marking all notifications as read:', error);
+                }
+            });
+        }
+
+        // Toggle dropdown
+        if (notificationBtn && notificationDropdown) {
+            notificationBtn.addEventListener('click', async function(e) {
+                e.stopPropagation();
+                notificationDropdown.classList.toggle('active');
+                
+                // Refresh notifications when dropdown is opened
+                if (notificationDropdown.classList.contains('active')) {
+                    const notifications = await fetchNotifications();
+                    renderNotifications(notifications);
+                }
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!notificationBtn.contains(e.target) && !notificationDropdown.contains(e.target)) {
+                    notificationDropdown.classList.remove('active');
+                }
+            });
+
+            // Prevent dropdown from closing when clicking inside it
+            notificationDropdown.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        }
+
+        // Initialize notifications
+        async function initializeNotifications() {
+            if (notificationBtn && notificationDropdown && notificationBadge && notificationList) {
+                const notifications = await fetchNotifications();
+                renderNotifications(notifications);
+            }
+        }
+
+        // Initialize only if elements exist
+        if (notificationBtn && notificationDropdown && notificationBadge && notificationList) {
+            initializeNotifications();
+            
+            // Optional: Set up real-time updates with WebSocket or periodic polling
+            setInterval(async () => {
+                const notifications = await fetchNotifications();
+                renderNotifications(notifications);
+            }, 30000); // Update every 30 seconds
+        }
+    })();
+    <?php endif; ?>
 </script>
 
 </body>

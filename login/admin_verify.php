@@ -403,9 +403,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['verify'])) {
                             <input type="password" name="code" id="code" required
                                    placeholder="Enter verification code"
                                    value="<?php echo isset($_POST['code']) ? htmlspecialchars($_POST['code']) : ''; ?>">
-                            <button type="button" class="admin-toggle-password" id="toggleCode">
-                                <i class="fas fa-eye"></i>
-                            </button>
+                            <button type="button" class="admin-toggle-password" id="toggleCode"></button>
                         </div>
                     </div>
 

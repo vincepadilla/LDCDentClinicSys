@@ -11,7 +11,7 @@ body {
 }
 
 .back-home {
-    position: fixed;
+    position: absolute;
     top: 20px;
     left: 20px;
     z-index: 100;
@@ -37,12 +37,13 @@ body {
     transform: translateY(-2px);
 }
 
+
 /* LAYOUT */
 .login-container {
     display: flex;
     min-height: 100vh; /* Changed from height to min-height */
     height: auto; /* Allow container to grow */
-    min-height: 700px;
+    min-height: 740px;
 }
 
 /* LEFT SIDE */
@@ -158,6 +159,7 @@ body {
     font-weight: 600;
     color: white;
     margin-bottom: 6px; /* Reduced from 8px */
+    margin-top: 20px;
     letter-spacing: -0.5px;
 }
 
@@ -605,6 +607,7 @@ body {
     .form-group.half-width {
         margin-bottom: 14px !important; /* Further reduced */
     }
+
 }
 
 @media (max-height: 800px) {

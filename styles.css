@@ -881,6 +881,315 @@ footer {
     margin-left: 8px;
     font-size: 18px;
 }
+
+/* Notification Styles */
+.notification-wrapper {
+    position: relative;
+    margin-right: 10px;
+}
+
+.notification-icon-container {
+    position: relative;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 50%;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notification-icon-container:hover {
+    background-color: var(--gray-light);
+    transform: scale(1.1);
+}
+
+.notification-icon-container i {
+    font-size: 20px;
+    color: var(--text-color);
+    transition: var(--transition);
+}
+
+.notification-icon-container:hover i {
+    color: var(--primary-color);
+}
+
+.notification-badge {
+    position: absolute;
+    top: -2px;
+    right: 4px;
+    background-color: #e74c3c;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--white);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.notification-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 380px;
+    max-width: calc(100vw - 40px);
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 1001;
+    max-height: 500px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.notification-dropdown.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.notification-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--gray-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+}
+
+.notification-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: white;
+}
+
+.mark-all-read {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: var(--transition);
+    font-weight: 500;
+}
+
+.mark-all-read:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.notification-list {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px 0;
+}
+
+.notification-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.notification-list::-webkit-scrollbar-track {
+    background: var(--gray-light);
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 3px;
+}
+
+.notification-list::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}
+
+.notification-empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--text-light);
+}
+
+.notification-empty i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.3;
+}
+
+.notification-empty p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.notification-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--gray-light);
+    transition: var(--transition);
+    position: relative;
+    cursor: pointer;
+}
+
+.notification-item:hover {
+    background-color: var(--gray-light);
+}
+
+.notification-item.unread {
+    background-color: #f0f8ff;
+    border-left: 3px solid var(--primary-color);
+}
+
+.notification-item.unread:hover {
+    background-color: #e6f3ff;
+}
+
+.notification-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.notification-icon.success {
+    background-color: #d4edda;
+    color: #28a745;
+}
+
+.notification-icon.info {
+    background-color: #d1ecf1;
+    color: #17a2b8;
+}
+
+.notification-icon.warning {
+    background-color: #fff3cd;
+    color: #ffc107;
+}
+
+.notification-icon i {
+    font-size: 18px;
+}
+
+.notification-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-content h4 {
+    margin: 0 0 5px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--secondary-color);
+}
+
+.notification-content p {
+    margin: 0 0 5px 0;
+    font-size: 13px;
+    color: var(--text-light);
+    line-height: 1.4;
+}
+
+.notification-time {
+    font-size: 11px;
+    color: var(--text-light);
+    opacity: 0.7;
+}
+
+.notification-mark-read {
+    background: transparent;
+    border: none;
+    color: var(--text-light);
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: var(--transition);
+    opacity: 0;
+    margin-left: 10px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.notification-item:hover .notification-mark-read {
+    opacity: 1;
+}
+
+.notification-mark-read:hover {
+    background-color: #e74c3c;
+    color: white;
+}
+
+/* Responsive Notification Styles */
+@media (max-width: 768px) {
+    .notification-dropdown {
+        width: 320px;
+        right: -10px;
+    }
+
+    .notification-header {
+        padding: 15px;
+    }
+
+    .notification-header h3 {
+        font-size: 16px;
+    }
+
+    .mark-all-read {
+        font-size: 11px;
+        padding: 5px 10px;
+    }
+
+    .notification-item {
+        padding: 12px 15px;
+    }
+
+    .notification-content h4 {
+        font-size: 13px;
+    }
+
+    .notification-content p {
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 576px) {
+    .notification-dropdown {
+        width: calc(100vw - 20px);
+        right: -50px;
+    }
+
+    .notification-icon-container {
+        padding: 6px 10px;
+    }
+
+    .notification-icon-container i {
+        font-size: 18px;
+    }
+
+    .notification-badge {
+        width: 18px;
+        height: 18px;
+        font-size: 10px;
+    }
+}
 .location-section, .contact-section {
     padding: 60px 0;
 }
