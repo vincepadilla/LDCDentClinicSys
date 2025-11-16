@@ -260,7 +260,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                                     <label for="gcashConfirm">I confirm that the above details are correct and I agree to proceed with the payment.</label>
                                 </div>
                                 
-                                <button type="submit" class="pay-button" id="gcashPayBtn" disabled>Pay Now</button>
+                                <button type="submit" class="pay-button" id="gcashPayBtn" disabled>Submit</button>
                             </div>
                         </div>
                     </div>

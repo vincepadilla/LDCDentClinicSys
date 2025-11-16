@@ -8,12 +8,27 @@ require '../PhpMailer/src/SMTP.php';
 
 include_once("config.php");
 
+// Function to generate new prefixed ID
+if (!function_exists('generateID')) {
+    function generateID($prefix, $table, $column, $con) {
+        $query = "SELECT $column FROM $table ORDER BY $column DESC LIMIT 1";
+        $result = mysqli_query($con, $query);
+        $row = mysqli_fetch_assoc($result);
+        if ($row && !empty($row[$column])) {
+            $lastNum = intval(substr($row[$column], strlen($prefix))) + 1;
+        } else {
+            $lastNum = 1;
+        }
+        return $prefix . str_pad($lastNum, 3, '0', STR_PAD_LEFT);
+    }
+}
+
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['appointment_id'])) {
     $appointment_id = $_POST['appointment_id'];
 
     // Get appointment details with joins to patient_information, services, and multidisciplinary_dental_team
     $stmt = $con->prepare("SELECT a.*, 
-                                   p.first_name, p.last_name, p.email,
+                                   p.first_name, p.last_name, p.email, p.user_id,
                                    s.service_category, s.sub_service,
                                    d.first_name as dentist_first, d.last_name as dentist_last
                            FROM appointments a 
@@ -38,6 +53,24 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['appointment_id'])) {
             $service = !empty($appointment['sub_service']) ? $appointment['sub_service'] : $appointment['service_category'];
             $dentist = trim($appointment['dentist_first'] . ' ' . $appointment['dentist_last']);
             $email = $appointment['email'];
+            $user_id = $appointment['user_id'];
+            
+            // === NOTIFICATION INSERT ===
+            if (!empty($user_id)) {
+                $notification_id = generateID('N', 'notifications', 'notification_id', $con);
+                $dentistName = 'Dr. ' . $dentist;
+                $dentistName = mysqli_real_escape_string($con, $dentistName);
+                $appointment_date = mysqli_real_escape_string($con, $appointment['appointment_date']);
+                $appointment_time = mysqli_real_escape_string($con, $appointment['appointment_time']);
+                $user_id = mysqli_real_escape_string($con, $user_id);
+                
+                $insertNotification = "INSERT INTO notifications 
+                    (notification_id, user_id, type, appointment_date, appointment_time, dentist_name, is_read, created_at)
+                    VALUES 
+                    ('$notification_id', '$user_id', 'confirmed', '$appointment_date', '$appointment_time', '$dentistName', 0, NOW())";
+                
+                mysqli_query($con, $insertNotification);
+            }
             
             // Send email
             $mail = new PHPMailer(true);

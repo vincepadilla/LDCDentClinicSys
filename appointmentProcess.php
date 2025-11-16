@@ -137,6 +137,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 ('$payment_id', '$appointment_id', '$paymentMethod', '$paymentAccName', '$paymentNumber', '$paymentAmount', '$paymentRefNum', '$proofImagePath', 'Pending')";
 
             if (mysqli_query($con, $insertPayment)) {
+                // === NOTIFICATION INSERT ===
+                if (!empty($userID)) {
+                    $getDentistQuery = "SELECT first_name, last_name FROM multidisciplinary_dental_team WHERE team_id = '$team_id'";
+                    $dentistResult = mysqli_query($con, $getDentistQuery);
+                    $dentistRow = mysqli_fetch_assoc($dentistResult);
+                    $dentistName = 'Dr. ' . ($dentistRow['first_name'] ?? '') . ' ' . ($dentistRow['last_name'] ?? '');
+                    $dentistName = mysqli_real_escape_string($con, trim($dentistName));
+                    
+                    $notification_id = generateID('N', 'notifications', 'notification_id', $con);
+                    $userID_escaped = mysqli_real_escape_string($con, $userID);
+                    $date_escaped = mysqli_real_escape_string($con, $date);
+                    $time_escaped = mysqli_real_escape_string($con, $time);
+                    
+                    $insertNotification = "INSERT INTO notifications 
+                        (notification_id, user_id, type, appointment_date, appointment_time, dentist_name, is_read, created_at)
+                        VALUES 
+                        ('$notification_id', '$userID_escaped', 'booked', '$date_escaped', '$time_escaped', '$dentistName', 0, NOW())";
+                    
+                    mysqli_query($con, $insertNotification);
+                }
+                
                 echo "<script>alert('Appointment Successfully Booked! Your Appointment ID: $appointment_id');
                 window.location.href='../login/account.php';</script>";
             } else {
