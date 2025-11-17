@@ -1005,10 +1005,17 @@ tr:hover {
         background: #fff3cd;
         color: #856404;
         border: 1px solid #ffeaa7;
+        cursor: not-allowed !important;
+        opacity: 0.7;
     }
 
     .slot-status:hover {
         transform: scale(1.05);
+    }
+
+    .slot-status.booked:hover {
+        transform: none;
+        cursor: not-allowed !important;
     }
 
     .slot-status i {

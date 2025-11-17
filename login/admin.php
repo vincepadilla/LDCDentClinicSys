@@ -3538,6 +3538,12 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
     }
 
     function toggleTimeSlot(element, date, slot) {
+        // Check if slot is disabled (booked)
+        if (element.classList.contains('booked') || element.style.cursor === 'not-allowed') {
+            alert('This slot is already booked and cannot be modified.');
+            return;
+        }
+        
         const currentStatus = element.classList.contains('available') ? 'available' : 
                             element.classList.contains('blocked') ? 'blocked' : 'booked';
         
@@ -3737,24 +3743,72 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         const dentistId = document.getElementById('dentistSelectSchedule').value;
         if (!dentistId) return;
         
-        // Load blocked slots and update the display
-        fetch('get_blocked_slots.php')
-        .then(response => response.json())
-        .then(blockedSlots => {
-            // Reset all slots to available first
+        // Get all date cells in the current week view
+        const dateCells = document.querySelectorAll('.time-slot-cell');
+        const dates = new Set();
+        dateCells.forEach(cell => {
+            const date = cell.getAttribute('data-date');
+            if (date) dates.add(date);
+        });
+        
+        // Load blocked slots and appointments
+        Promise.all([
+            fetch('get_blocked_slots.php').then(res => res.json()),
+            Promise.all(Array.from(dates).map(date => 
+                fetch(`getAppointmentsAdmin.php?appointment_date=${date}&dentist_id=${dentistId}`)
+                    .then(res => res.json())
+                    .then(slots => ({ date, slots }))
+                    .catch(() => ({ date, slots: [] }))
+            ))
+        ])
+        .then(([blockedSlots, appointmentData]) => {
+            // Create a map of appointments by date and time slot
+            const appointmentsByDate = {};
+            appointmentData.forEach(({ date, slots }) => {
+                appointmentsByDate[date] = new Set(slots);
+            });
+            
+            // Reset all slots to available first and re-enable onclick
             document.querySelectorAll('.slot-status').forEach(slot => {
-                if (!slot.classList.contains('booked')) {
-                    slot.className = 'slot-status available';
-                    slot.innerHTML = '<i class="fas fa-check-circle"></i><span>Available</span>';
+                slot.className = 'slot-status available';
+                slot.innerHTML = '<i class="fas fa-check-circle"></i><span>Available</span>';
+                // Re-enable onclick by restoring the onclick attribute
+                const cell = slot.closest('.time-slot-cell');
+                if (cell) {
+                    const date = cell.getAttribute('data-date');
+                    const slotKey = cell.getAttribute('data-slot');
+                    slot.setAttribute('onclick', `toggleTimeSlot(this, '${date}', '${slotKey}')`);
+                    slot.style.cursor = 'pointer';
+                    slot.style.opacity = '1';
                 }
             });
             
-            // Mark blocked slots
+            // Mark booked slots first (they take priority)
+            Object.keys(appointmentsByDate).forEach(date => {
+                const bookedSlots = appointmentsByDate[date];
+                bookedSlots.forEach(timeSlot => {
+                    const cell = document.querySelector(`[data-date="${date}"][data-slot="${timeSlot}"]`);
+                    if (cell) {
+                        const statusElement = cell.querySelector('.slot-status');
+                        if (statusElement) {
+                            statusElement.className = 'slot-status booked';
+                            statusElement.innerHTML = '<i class="fas fa-calendar-check"></i><span>Booked</span>';
+                            // Remove onclick and disable interaction
+                            statusElement.removeAttribute('onclick');
+                            statusElement.style.cursor = 'not-allowed';
+                            statusElement.style.opacity = '0.7';
+                        }
+                    }
+                });
+            });
+            
+            // Mark blocked slots (but don't override booked slots)
             blockedSlots.forEach(slot => {
                 if (slot.dentist_id === dentistId) {
                     const cell = document.querySelector(`[data-date="${slot.date}"][data-slot="${slot.time_slot}"]`);
                     if (cell) {
                         const statusElement = cell.querySelector('.slot-status');
+                        // Only mark as blocked if it's not already booked
                         if (statusElement && !statusElement.classList.contains('booked')) {
                             statusElement.className = 'slot-status blocked';
                             statusElement.innerHTML = '<i class="fas fa-times-circle"></i><span>Blocked</span>';
