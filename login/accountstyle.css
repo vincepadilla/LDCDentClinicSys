@@ -273,6 +273,7 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     text-decoration: none;
+    display: inline-block;
     text-align: center;
     min-width: 80px;
 }
