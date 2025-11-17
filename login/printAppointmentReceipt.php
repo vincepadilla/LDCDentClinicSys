@@ -78,20 +78,30 @@ $lightGray = array(236, 240, 241); // Light gray
 
 // Header Section
 $pdf->SetFillColor($headerColor[0], $headerColor[1], $headerColor[2]);
-$pdf->Rect(0, 0, 210, 40, 'F');
+$pdf->Rect(0, 0, 210, 50, 'F');
+
+// Add logo
+$logoPath = '../landerologo.png';
+if (file_exists($logoPath)) {
+    $pdf->Image($logoPath, 10, 5, 30, 0);
+}
 
 $pdf->SetTextColor(255, 255, 255);
-$pdf->SetFont('Arial', 'B', 24);
-$pdf->SetY(12);
-$pdf->Cell(0, 10, 'DENTAL CLINIC APPOINTMENT RECEIPT', 0, 1, 'C');
+$pdf->SetFont('Arial', 'B', 16);
+$pdf->SetY(15);
+$pdf->Cell(0, 8, 'LANDERO DENTAL CLINIC', 0, 1, 'C');
 
-$pdf->SetFont('Arial', '', 10);
-$pdf->SetY(25);
+$pdf->SetFont('Arial', 'B', 12);
+$pdf->SetY(23);
+$pdf->Cell(0, 6, 'APPOINTMENT RECEIPT', 0, 1, 'C');
+
+$pdf->SetFont('Arial', '', 9);
+$pdf->SetY(30);
 $pdf->Cell(0, 5, 'Official Appointment Receipt', 0, 1, 'C');
 
 // Reset text color
 $pdf->SetTextColor($textColor[0], $textColor[1], $textColor[2]);
-$pdf->SetY(50);
+$pdf->SetY(60);
 
 // Receipt Information
 $pdf->SetFont('Arial', 'B', 12);
@@ -147,10 +157,6 @@ $pdf->SetFillColor($lightGray[0], $lightGray[1], $lightGray[2]);
 $pdf->Cell(95, 7, 'Service Category: ' . htmlspecialchars($data['service_category'] ?? 'N/A'), 0, 0, 'L', true);
 $pdf->Cell(95, 7, 'Sub Service: ' . htmlspecialchars($data['sub_service'] ?? 'N/A'), 0, 1, 'L', true);
 
-if (!empty($data['service_description'])) {
-    $pdf->Cell(0, 7, 'Service Description: ' . htmlspecialchars($data['service_description']), 0, 1, 'L', false);
-}
-
 $dentistName = 'N/A';
 if (!empty($data['dentist_first_name']) && !empty($data['dentist_last_name'])) {
     $dentistName = 'Dr. ' . htmlspecialchars($data['dentist_first_name'] . ' ' . $data['dentist_last_name']);
@@ -160,7 +166,7 @@ $pdf->SetFillColor($lightGray[0], $lightGray[1], $lightGray[2]);
 $pdf->Cell(95, 7, 'Dentist: ' . $dentistName, 0, 0, 'L', true);
 $pdf->Cell(95, 7, 'Branch: ' . htmlspecialchars($data['branch'] ?? 'N/A'), 0, 1, 'L', true);
 
-$pdf->Cell(95, 7, 'Service Price: ' . ($data['service_price'] ? '₱' . number_format($data['service_price'], 2) : 'N/A'), 0, 0, 'L', false);
+$pdf->Cell(95, 7, 'Service Price: ' . ($data['service_price'] ? 'PHP ' . number_format($data['service_price'], 2) : 'N/A'), 0, 0, 'L', false);
 $pdf->Cell(95, 7, 'Date Created: ' . ($data['created_at'] ? date('F j, Y g:i A', strtotime($data['created_at'])) : 'N/A'), 0, 1, 'L', false);
 $pdf->Ln(3);
 
@@ -178,7 +184,7 @@ if (!empty($data['payment_id'])) {
     $pdf->Cell(95, 7, 'Payment Status: ' . ucfirst(htmlspecialchars($data['payment_status'] ?? 'N/A')), 0, 1, 'L', true);
 
     $pdf->Cell(95, 7, 'Payment Method: ' . htmlspecialchars($data['payment_method'] ?? 'N/A'), 0, 0, 'L', false);
-    $pdf->Cell(95, 7, 'Amount Paid: ' . ($data['payment_amount'] ? '₱' . number_format($data['payment_amount'], 2) : 'N/A'), 0, 1, 'L', false);
+    $pdf->Cell(95, 7, 'Amount Paid: ' . ($data['payment_amount'] ? 'PHP ' . number_format($data['payment_amount'], 2) : 'N/A'), 0, 1, 'L', false);
 
     if (!empty($data['account_name'])) {
         $pdf->SetFillColor($lightGray[0], $lightGray[1], $lightGray[2]);
