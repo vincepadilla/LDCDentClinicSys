@@ -631,11 +631,11 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             <!-- Weekly Schedule View -->
             <div id="weeklyView" class="schedule-view">
                 <div class="week-navigation">
-                    <button class="btn btn-accent" onclick="changeWeek(-1)">
+                    <button id="prevWeekBtn" class="btn btn-accent" onclick="changeWeek(-1)">
                         <i class="fas fa-chevron-left"></i> Previous Week
                     </button>
                     <h3 id="currentWeekRange">Week of ...</h3>
-                    <button class="btn btn-accent" onclick="changeWeek(1)">
+                    <button id="nextWeekBtn" class="btn btn-accent" onclick="changeWeek(1)">
                         Next Week <i class="fas fa-chevron-right"></i>
                     </button>
                 </div>
@@ -3264,15 +3264,33 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 
     // Initialize schedule
     document.addEventListener('DOMContentLoaded', function() {
+        // Ensure we start at the current week
+        currentWeekStart = getMondayOf(new Date());
         updateWeekDisplay();
         loadBlockedSlots();
         generateMonthlyCalendar();
+        
+        // Load schedule data when dentist is selected
+        const dentistSelect = document.getElementById('dentistSelectSchedule');
+        if (dentistSelect) {
+            dentistSelect.addEventListener('change', function() {
+                loadScheduleData();
+                generateMonthlyCalendar(); // Reload monthly view too
+            });
+        }
     });
 
     function changeScheduleView() {
         const viewType = document.getElementById('viewType').value;
         document.getElementById('weeklyView').style.display = viewType === 'weekly' ? 'block' : 'none';
         document.getElementById('monthlyView').style.display = viewType === 'monthly' ? 'block' : 'none';
+        
+        // Reload data when switching views
+        if (viewType === 'monthly') {
+            generateMonthlyCalendar();
+        } else {
+            loadScheduleData();
+        }
     }
 
     // Ensure currentWeekStart is the Monday of the current week
@@ -3286,17 +3304,53 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
     }
 
     function changeWeek(direction) {
-        currentWeekStart.setDate(currentWeekStart.getDate() + (direction * 7));
+        const newWeekStart = new Date(currentWeekStart);
+        newWeekStart.setDate(newWeekStart.getDate() + (direction * 7));
+        
+        // Get the Monday of the current week (this week)
+        const thisWeekMonday = getMondayOf(new Date());
+        
+        // Prevent going to previous weeks (only allow current week and future weeks)
+        if (newWeekStart < thisWeekMonday) {
+            return; // Don't allow going to past weeks
+        }
+        
+        currentWeekStart = newWeekStart;
         updateWeekDisplay();
-        loadScheduleData(); // keep your existing call
+        updateWeekNavigationButtons();
+        
+        // Reload schedule data after updating week display
+        setTimeout(() => {
+            loadScheduleData();
+        }, 100);
+    }
+    
+    function updateWeekNavigationButtons() {
+        const prevBtn = document.getElementById('prevWeekBtn');
+        const nextBtn = document.getElementById('nextWeekBtn');
+        
+        if (!prevBtn || !nextBtn) return;
+        
+        // Get the Monday of the current week (this week)
+        const thisWeekMonday = getMondayOf(new Date());
+        
+        // Disable Previous Week button if we're at the current week
+        if (currentWeekStart.getTime() === thisWeekMonday.getTime()) {
+            prevBtn.disabled = true;
+            prevBtn.style.opacity = '0.5';
+            prevBtn.style.cursor = 'not-allowed';
+        } else {
+            prevBtn.disabled = false;
+            prevBtn.style.opacity = '1';
+            prevBtn.style.cursor = 'pointer';
+        }
+        
+        // Next Week button is always enabled (can always go to future weeks)
+        nextBtn.disabled = false;
+        nextBtn.style.opacity = '1';
+        nextBtn.style.cursor = 'pointer';
     }
 
-        // initial call when page loads
-    document.addEventListener('DOMContentLoaded', function() {
-        // If somewhere else you set currentWeekStart differently, ensure this runs after that initialization.
-        currentWeekStart = getMondayOf(currentWeekStart); // normalize
-        updateWeekDisplay();
-    });
 
     function updateWeekDisplay() {
         const weekEnd = new Date(currentWeekStart);
@@ -3308,6 +3362,9 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 
         // ALSO update the individual day headers and time-slot data-date attributes
         updateDayHeadersAndCells();
+        
+        // Update navigation buttons state
+        updateWeekNavigationButtons();
     }
 
     function updateDayHeadersAndCells() {
@@ -3355,11 +3412,16 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             currentYear++;
         }
         generateMonthlyCalendar();
+        // Reload schedule data after month change
+        setTimeout(() => {
+            loadScheduleData();
+        }, 100);
     }
 
     function generateMonthlyCalendar() {
         const calendar = document.getElementById('monthlyCalendar');
         const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const dentistId = document.getElementById('dentistSelectSchedule').value;
         
         document.getElementById('currentMonth').textContent = `${monthNames[currentMonth]} ${currentYear}`;
         
@@ -3367,39 +3429,112 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         const lastDay = new Date(currentYear, currentMonth + 1, 0);
         const startingDay = firstDay.getDay();
         
-        let calendarHTML = '';
-        
-        // Day headers
-        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        dayNames.forEach(day => {
-            calendarHTML += `<div class="calendar-day-header">${day}</div>`;
-        });
-        
-        // Empty cells for days before the first day of month
-        for (let i = 0; i < startingDay; i++) {
-            const prevDate = new Date(currentYear, currentMonth, -i);
-            calendarHTML += `<div class="calendar-day other-month">${prevDate.getDate()}</div>`;
-        }
-        
-        // Days of the month
-        for (let day = 1; day <= lastDay.getDate(); day++) {
-            const date = new Date(currentYear, currentMonth, day);
-            const isToday = new Date().toDateString() === date.toDateString();
-            const dayClass = isToday ? 'calendar-day today' : 'calendar-day';
+        // Load schedule data for the month
+        loadMonthlyScheduleData(dentistId, firstDay, lastDay).then(scheduleData => {
+            let calendarHTML = '';
             
-            calendarHTML += `
-                <div class="${dayClass}" data-date="${date.toISOString().split('T')[0]}">
-                    <div class="calendar-day-header">${day}</div>
-                    <div class="day-slots">
-                        <div><span class="slot-indicator available"></span> 8 available</div>
-                        <div><span class="slot-indicator blocked"></span> 2 blocked</div>
-                        <div><span class="slot-indicator booked"></span> 3 booked</div>
+            // Day headers
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayNames.forEach(day => {
+                calendarHTML += `<div class="calendar-day-header">${day}</div>`;
+            });
+            
+            // Empty cells for days before the first day of month
+            for (let i = 0; i < startingDay; i++) {
+                const prevDate = new Date(currentYear, currentMonth, -i);
+                calendarHTML += `<div class="calendar-day other-month">${prevDate.getDate()}</div>`;
+            }
+            
+            // Days of the month
+            for (let day = 1; day <= lastDay.getDate(); day++) {
+                const date = new Date(currentYear, currentMonth, day);
+                const dateStr = date.toISOString().split('T')[0];
+                const isToday = new Date().toDateString() === date.toDateString();
+                const dayClass = isToday ? 'calendar-day today' : 'calendar-day';
+                
+                // Get counts for this date
+                const dayData = scheduleData[dateStr] || { blocked: 0, booked: 0, available: 0 };
+                const totalSlots = 11; // Total time slots per day
+                const available = totalSlots - dayData.blocked - dayData.booked;
+                
+                calendarHTML += `
+                    <div class="${dayClass}" data-date="${dateStr}">
+                        <div class="calendar-day-header">${day}</div>
+                        <div class="day-slots">
+                            <div><span class="slot-indicator available"></span> ${available} available</div>
+                            <div><span class="slot-indicator blocked"></span> ${dayData.blocked} blocked</div>
+                            <div><span class="slot-indicator booked"></span> ${dayData.booked} booked</div>
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            }
+            
+            calendar.innerHTML = calendarHTML;
+        });
+    }
+    
+    async function loadMonthlyScheduleData(dentistId, firstDay, lastDay) {
+        if (!dentistId) {
+            return {};
         }
         
-        calendar.innerHTML = calendarHTML;
+        const scheduleData = {};
+        
+        try {
+            // Load blocked slots
+            const blockedResponse = await fetch('get_blocked_slots.php');
+            const blockedSlots = await blockedResponse.json();
+            
+            // Load appointments (we need to get appointments for the dentist)
+            // For now, we'll use a simplified approach - get all appointments
+            const startDate = firstDay.toISOString().split('T')[0];
+            const endDate = lastDay.toISOString().split('T')[0];
+            
+            // Initialize all dates in the month
+            for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+                const dateStr = d.toISOString().split('T')[0];
+                scheduleData[dateStr] = { blocked: 0, booked: 0, available: 0 };
+            }
+            
+            // Count blocked slots per date for selected dentist
+            blockedSlots.forEach(slot => {
+                if (slot.dentist_id === dentistId && slot.date >= startDate && slot.date <= endDate) {
+                    if (!scheduleData[slot.date]) {
+                        scheduleData[slot.date] = { blocked: 0, booked: 0, available: 0 };
+                    }
+                    scheduleData[slot.date].blocked++;
+                }
+            });
+            
+            // Count booked appointments per date
+            // We'll need to fetch appointments - let's create a simple fetch
+            // For now, we'll use a placeholder - you may need to create an endpoint for this
+            // Or we can fetch appointments one by one (not efficient but works)
+            const appointmentPromises = [];
+            for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+                const dateStr = d.toISOString().split('T')[0];
+                appointmentPromises.push(
+                    fetch(`getAppointmentsAdmin.php?appointment_date=${dateStr}&dentist_id=${dentistId}`)
+                        .then(res => res.json())
+                        .then(slots => {
+                            if (!scheduleData[dateStr]) {
+                                scheduleData[dateStr] = { blocked: 0, booked: 0, available: 0 };
+                            }
+                            scheduleData[dateStr].booked = slots.length;
+                        })
+                        .catch(() => {
+                            // If endpoint doesn't exist or fails, just continue
+                        })
+                );
+            }
+            
+            await Promise.all(appointmentPromises);
+            
+        } catch (error) {
+            console.error('Error loading monthly schedule data:', error);
+        }
+        
+        return scheduleData;
     }
 
     function toggleTimeSlot(element, date, slot) {
@@ -3413,22 +3548,66 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         
         const newStatus = currentStatus === 'available' ? 'blocked' : 'available';
         
-        // Update UI immediately
-        element.className = `slot-status ${newStatus}`;
-        element.innerHTML = newStatus === 'available' ? 
-            '<i class="fas fa-check-circle"></i><span>Available</span>' :
-            '<i class="fas fa-times-circle"></i><span>Blocked</span>';
-        
-        // Send AJAX request to update database
-        updateTimeSlotStatus(date, slot, newStatus);
+        // If blocking, prompt for reason
+        if (newStatus === 'blocked') {
+            const reason = prompt('Please provide a reason for blocking this time slot:', 'Blocked by admin');
+            if (reason === null) {
+                // User cancelled
+                return;
+            }
+            if (reason.trim() === '') {
+                alert('Reason is required to block a time slot.');
+                return;
+            }
+            
+            // Update UI immediately
+            element.className = `slot-status ${newStatus}`;
+            element.innerHTML = '<i class="fas fa-times-circle"></i><span>Blocked</span>';
+            
+            // Send AJAX request to update database
+            updateTimeSlotStatus(date, slot, newStatus, reason.trim());
+        } else {
+            // Unblocking
+            if (!confirm('Are you sure you want to unblock this time slot?')) {
+                return;
+            }
+            
+            // Update UI immediately
+            element.className = `slot-status ${newStatus}`;
+            element.innerHTML = '<i class="fas fa-check-circle"></i><span>Available</span>';
+            
+            // Send AJAX request to update database
+            updateTimeSlotStatus(date, slot, newStatus);
+        }
     }
 
-    function updateTimeSlotStatus(date, slot, status) {
+    function updateTimeSlotStatus(date, slot, status, reason = '') {
         const dentistId = document.getElementById('dentistSelectSchedule').value;
         
         if (!dentistId) {
             alert('Please select a dentist first.');
+            // Revert UI
+            const element = document.querySelector(`[data-date="${date}"][data-slot="${slot}"] .slot-status`);
+            if (element) {
+                const currentStatus = status === 'blocked' ? 'available' : 'blocked';
+                element.className = `slot-status ${currentStatus}`;
+                element.innerHTML = currentStatus === 'available' ? 
+                    '<i class="fas fa-check-circle"></i><span>Available</span>' :
+                    '<i class="fas fa-times-circle"></i><span>Blocked</span>';
+            }
             return;
+        }
+        
+        const requestData = {
+            dentist_id: dentistId,
+            date: date,
+            time_slot: slot,
+            status: status,
+            action: 'update_slot'
+        };
+        
+        if (reason) {
+            requestData.reason = reason;
         }
         
         fetch('update_schedule.php', {
@@ -3436,25 +3615,39 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                dentist_id: dentistId,
-                date: date,
-                time_slot: slot,
-                status: status,
-                action: 'update_slot'
-            })
+            body: JSON.stringify(requestData)
         })
         .then(response => response.json())
         .then(data => {
-            if (!data.success) {
+            if (data.success) {
+                // Reload blocked slots list and schedule display
+                loadBlockedSlots();
+                loadScheduleData();
+            } else {
                 alert('Error updating slot: ' + data.message);
                 // Revert UI change
-                // You might want to implement a more sophisticated rollback
+                const element = document.querySelector(`[data-date="${date}"][data-slot="${slot}"] .slot-status`);
+                if (element) {
+                    const revertStatus = status === 'blocked' ? 'available' : 'blocked';
+                    element.className = `slot-status ${revertStatus}`;
+                    element.innerHTML = revertStatus === 'available' ? 
+                        '<i class="fas fa-check-circle"></i><span>Available</span>' :
+                        '<i class="fas fa-times-circle"></i><span>Blocked</span>';
+                }
             }
         })
         .catch(error => {
             console.error('Error:', error);
             alert('Error updating slot. Please try again.');
+            // Revert UI change
+            const element = document.querySelector(`[data-date="${date}"][data-slot="${slot}"] .slot-status`);
+            if (element) {
+                const revertStatus = status === 'blocked' ? 'available' : 'blocked';
+                element.className = `slot-status ${revertStatus}`;
+                element.innerHTML = revertStatus === 'available' ? 
+                    '<i class="fas fa-check-circle"></i><span>Available</span>' :
+                    '<i class="fas fa-times-circle"></i><span>Blocked</span>';
+            }
         });
     }
 
@@ -3544,9 +3737,35 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         const dentistId = document.getElementById('dentistSelectSchedule').value;
         if (!dentistId) return;
         
-        // This would load actual schedule data from the server
-        // For now, we'll just update the display
-        console.log('Loading schedule data for dentist:', dentistId);
+        // Load blocked slots and update the display
+        fetch('get_blocked_slots.php')
+        .then(response => response.json())
+        .then(blockedSlots => {
+            // Reset all slots to available first
+            document.querySelectorAll('.slot-status').forEach(slot => {
+                if (!slot.classList.contains('booked')) {
+                    slot.className = 'slot-status available';
+                    slot.innerHTML = '<i class="fas fa-check-circle"></i><span>Available</span>';
+                }
+            });
+            
+            // Mark blocked slots
+            blockedSlots.forEach(slot => {
+                if (slot.dentist_id === dentistId) {
+                    const cell = document.querySelector(`[data-date="${slot.date}"][data-slot="${slot.time_slot}"]`);
+                    if (cell) {
+                        const statusElement = cell.querySelector('.slot-status');
+                        if (statusElement && !statusElement.classList.contains('booked')) {
+                            statusElement.className = 'slot-status blocked';
+                            statusElement.innerHTML = '<i class="fas fa-times-circle"></i><span>Blocked</span>';
+                        }
+                    }
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error loading schedule data:', error);
+        });
     }
 
     // Form submissions
