@@ -205,6 +205,9 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
                         
                         // Determine if buttons should be disabled
                         $buttonsDisabled = ($status == 'Cancelled' || $status == 'Complete' || $status == 'Completed' || $isCashUnpaid);
+                        
+                        // Print Receipt button is only enabled when status is "Confirmed"
+                        $printReceiptDisabled = ($status != 'Confirmed');
                         ?>
                         <div class="appointment-card" style="margin-bottom: 20px;">
                             <div class="appointment-header">
@@ -257,16 +260,23 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
                             </div>
                             
                             <div class="appointment-actions">
+                                <a href="printAppointmentReceipt.php?id=<?= $recent_appointment['appointment_id']; ?>" 
+                                   class="btn btn-secondary <?= $printReceiptDisabled ? 'disabled' : ''; ?>"
+                                   target="_blank"
+                                   <?= $printReceiptDisabled ? 'onclick="return false;" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;"' : ''; ?>>
+                                    Print Receipt
+                                </a>
+
                                 <a href="cancelAppointment.php?id=<?= $recent_appointment['appointment_id']; ?>" 
                                    class="btn btn-danger <?= $buttonsDisabled ? 'disabled' : ''; ?>"
                                    <?= $buttonsDisabled ? 'onclick="return false;" style="opacity: 0.5; cursor: not-allowed;"' : "onclick=\"return confirm('Are you sure you want to cancel?');\""; ?>>
-                                    Cancel Appointment
+                                    Cancel
                                 </a>
 
                                 <a href="reschedule.php?id=<?= $recent_appointment['appointment_id']; ?>" 
                                    class="btn btn-primary <?= $buttonsDisabled ? 'disabled' : ''; ?>"
                                    <?= $buttonsDisabled ? 'style="opacity: 0.5; cursor: not-allowed;"' : ''; ?>>
-                                    Reschedule Appointment
+                                    Reschedule
                                 </a>
                             </div>
                         </div>

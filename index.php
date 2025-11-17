@@ -277,7 +277,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                     </ul>
                 </div>
                 <div class="contact-form-card">
-                    <form action="contact_process.php" method="POST">
+                    <form action="https://formspree.io/f/mkgkewyl" method="POST">
                         <div>
                             <label for="contact_name" style="display:block; margin-bottom:6px; font-weight:600;">Full Name</label>
                             <input type="text" id="contact_name" name="name" required>
