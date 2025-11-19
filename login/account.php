@@ -182,15 +182,28 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
                         // Check if cash payment and not paid yet (check both lowercase and uppercase for safety)
                         $isCashUnpaid = ($payment_method == 'Cash' && (strtolower($payment_status) == 'pending' || $payment_status == null));
                         
-                        // Calculate deadline (2 days before appointment)
+                        // Calculate deadline - check if appointment is tomorrow
                         $appointment_date = $recent_appointment['appointment_date'];
                         $deadline_date = null;
                         $deadline_formatted = '';
+                        $isTomorrow = false;
+                        $today = new DateTime('today');
+                        
                         if ($isCashUnpaid && $appointment_date) {
                             $appointmentDateObj = new DateTime($appointment_date);
-                            $deadlineDateObj = clone $appointmentDateObj;
-                            $deadlineDateObj->modify('-2 days');
-                            $deadline_formatted = $deadlineDateObj->format('F j, Y');
+                            $tomorrow = clone $today;
+                            $tomorrow->modify('+1 day');
+                            $isTomorrow = ($appointmentDateObj->format('Y-m-d') === $tomorrow->format('Y-m-d'));
+                            
+                            if ($isTomorrow) {
+                                // For tomorrow appointments, deadline is today
+                                $deadline_formatted = $today->format('F j, Y');
+                            } else {
+                                // For other appointments, deadline is 2 days before
+                                $deadlineDateObj = clone $appointmentDateObj;
+                                $deadlineDateObj->modify('-2 days');
+                                $deadline_formatted = $deadlineDateObj->format('F j, Y');
+                            }
                         }
                         
                         $statusClass = match($status) {
@@ -240,8 +253,17 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
                                     // Show cash payment notice
                                     echo "<div style='background-color: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; margin: 15px 0;'>";
                                     echo "<p style='color: #856404; margin: 0; line-height: 1.6;'><strong>⚠️ Appointment Slot Reserved!</strong></p>";
-                                    echo "<p style='color: #856404; margin: 10px 0 0 0; line-height: 1.6;'>Please pay at least 2 days before your appointment date (" . date('F j, Y', strtotime($appointment_date)) . ") at the branch.</p>";
-                                    echo "<p style='color: #856404; margin: 5px 0 0 0; line-height: 1.6;'><strong>Payment deadline: " . $deadline_formatted . "</strong></p>";
+                                    
+                                    if ($isTomorrow) {
+                                        // For tomorrow appointments, require immediate payment
+                                        echo "<p style='color: #856404; margin: 10px 0 0 0; line-height: 1.6;'><strong>IMPORTANT: Your appointment is tomorrow (" . date('F j, Y', strtotime($appointment_date)) . ")!</strong></p>";
+                                        echo "<p style='color: #856404; margin: 5px 0 0 0; line-height: 1.6;'><strong>You must pay TODAY (" . $deadline_formatted . ") at the branch, otherwise your reservation will be cancelled.</strong></p>";
+                                    } else {
+                                        // For other appointments, maintain 2-day deadline
+                                        echo "<p style='color: #856404; margin: 10px 0 0 0; line-height: 1.6;'>Please pay at least 2 days before your appointment date (" . date('F j, Y', strtotime($appointment_date)) . ") at the branch.</p>";
+                                        echo "<p style='color: #856404; margin: 5px 0 0 0; line-height: 1.6;'><strong>Payment deadline: " . $deadline_formatted . "</strong></p>";
+                                    }
+                                    
                                     echo "<p style='color: #856404; margin: 5px 0 0 0; line-height: 1.6;'>Your slot will be cancelled if payment is not received on time.</p>";
                                     echo "<p style='color: #856404; margin: 5px 0 0 0; line-height: 1.6;'>Appointment ID: " . htmlspecialchars($recent_appointment['appointment_id']) . " (Status: Pending - Cash Payment Required)</p>";
                                     echo "</div>";

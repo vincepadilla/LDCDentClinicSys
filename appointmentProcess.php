@@ -214,14 +214,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     mysqli_query($con, $insertNotification);
                 }
                 
-                // Calculate deadline date (2 days before appointment)
+                // Check if appointment is tomorrow
                 $appointmentDate = new DateTime($date);
-                $deadlineDate = clone $appointmentDate;
-                $deadlineDate->modify('-2 days');
-                $deadlineFormatted = $deadlineDate->format('F j, Y');
+                $today = new DateTime('today');
+                $tomorrow = clone $today;
+                $tomorrow->modify('+1 day');
+                $isTomorrow = ($appointmentDate->format('Y-m-d') === $tomorrow->format('Y-m-d'));
                 
-                echo "<script>alert('Appointment Slot Reserved! Please pay at least 2 days before your appointment date ($date) at the branch. Payment deadline: $deadlineFormatted. Your slot will be cancelled if payment is not received on time. Appointment ID: $appointment_id (Status: Pending - Cash Payment Required)');
-                window.location.href='../login/account.php';</script>";
+                // For tomorrow appointments with cash: require immediate payment
+                // For other appointments with cash: maintain 2-day deadline
+                if ($isTomorrow) {
+                    $todayFormatted = $today->format('F j, Y');
+                    echo "<script>alert('Appointment Slot Reserved for Tomorrow! IMPORTANT: You must pay TODAY ($todayFormatted) at the branch, otherwise your reservation will be cancelled.');
+                    window.location.href='../login/account.php';</script>";
+                } else {
+                    // Calculate deadline date (2 days before appointment)
+                    $deadlineDate = clone $appointmentDate;
+                    $deadlineDate->modify('-2 days');
+                    $deadlineFormatted = $deadlineDate->format('F j, Y');
+                    
+                    echo "<script>alert('Appointment Slot Reserved! Please pay at least 2 days before your appointment date ($date) at the branch.');
+                    window.location.href='../login/account.php';</script>";
+                }
             } else {
                 error_log('Payment error: ' . mysqli_error($con));
                 echo "<script>alert('Error saving reservation. Try again.');

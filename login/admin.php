@@ -51,7 +51,7 @@ $result = mysqli_query($con, $sql);
     <nav class="sidebar-nav">
         <a href="#" class="active" onclick="showSection('dashboard', this)"><i class="fa fa-tachometer"></i> Dashboard</a>
         <a href="#appointment" onclick="showSection('appointment', this)"><i class="fas fa-calendar-check"></i> Appointments</a>
-        <a href="#schedules" onclick="showSection('schedules', this)"><i class="fas fa-calendar-days"></i> Schedules</a>
+        <a href="#schedules" onclick="showSection('schedules', this)"><i class="fas fa-calendar-days"></i> Time Slots</a>
         <a href="#services" onclick="showSection('services', this)"><i class="fa-solid fa-teeth"></i> Services</a>
         <a href="#patients" onclick="showSection('patients', this)"><i class="fa-solid fa-hospital-user"></i> Patients</a>
         <a href="#treatment" onclick="showSection('treatment', this)"><i class="fa-solid fa-notes-medical"></i> History</a>
@@ -601,7 +601,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 <!-- Dentist Schedule -->
 <div id="schedules" class="main-content" style="display:none">
     <div class="container">
-            <h2><i class="fa-solid fa-calendar-days"></i> DENTIST SCHEDULE MANAGEMENT</h2>
+            <h2><i class="fa-solid fa-calendar-days"></i> TIME SLOT SCHEDULING CONTROL</h2>
             
             <div class="schedule-controls">
                 <div class="control-group">
