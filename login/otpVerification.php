@@ -47,38 +47,85 @@ if (isset($_POST['submit'])) {
             $address = $_SESSION['temp_user']['address'];
             $password_hash = $_SESSION['temp_user']['password'];
 
-            // Use transaction to ensure both inserts succeed
-            mysqli_begin_transaction($con);
-
-            try {
-                // Insert into user_account
-                $query1 = "INSERT INTO user_account 
-                            (user_id, username, first_name, last_name, birthdate, gender, address, email, phone, password_hash, role, contactNumber_verify) 
-                           VALUES 
-                            (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'patient', 'verified')";
-                $stmt1 = $con->prepare($query1);
-                $stmt1->bind_param("ssssssssss", $user_id, $username, $fname, $lname, $birthdate, $gender, $address, $email, $phone, $password_hash);
-                
-                if ($stmt1->execute()) {
-                    // Commit the transaction
-                    mysqli_commit($con);
-                    
-                    // Clear session data
-                    unset($_SESSION['temp_user'], $_SESSION['otp'], $_SESSION['otp_expiry']);
-                    
-                    echo "<script>
-                        alert('Registration successful! You can now log in.');
-                        window.location.href='login.php';
-                    </script>";
-                    exit;
+            // Check for duplicate username or email before attempting insert
+            $check_duplicate = $con->prepare("SELECT user_id, username, email FROM user_account WHERE username = ? OR email = ? OR user_id = ?");
+            $check_duplicate->bind_param("sss", $username, $email, $user_id);
+            $check_duplicate->execute();
+            $duplicate_result = $check_duplicate->get_result();
+            
+            if ($duplicate_result->num_rows > 0) {
+                $duplicate_row = $duplicate_result->fetch_assoc();
+                if ($duplicate_row['username'] === $username) {
+                    $error = 'This username is already taken. Please choose a different username.';
+                } elseif ($duplicate_row['email'] === $email) {
+                    $error = 'This email is already registered. Please use a different email or try logging in.';
+                } elseif ($duplicate_row['user_id'] === $user_id) {
+                    $error = 'User ID conflict. Please try registering again.';
                 } else {
-                    throw new Exception("Failed to insert user data: " . $stmt1->error);
+                    $error = 'This account information is already registered.';
                 }
+                $check_duplicate->close();
+            } else {
+                $check_duplicate->close();
+                
+                // Use transaction to ensure both inserts succeed
+                mysqli_begin_transaction($con);
 
-            } catch (Exception $e) {
-                mysqli_rollback($con);
-                error_log('Database Transaction Error: ' . $e->getMessage());
-                $error = 'Database error during registration. Please try again later.';
+                try {
+                    // Insert into user_account
+                    $query1 = "INSERT INTO user_account 
+                                (user_id, username, first_name, last_name, birthdate, gender, address, email, phone, password_hash, role, contactNumber_verify) 
+                               VALUES 
+                                (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'patient', 'verified')";
+                    $stmt1 = $con->prepare($query1);
+                    $stmt1->bind_param("ssssssssss", $user_id, $username, $fname, $lname, $birthdate, $gender, $address, $email, $phone, $password_hash);
+                    
+                    if ($stmt1->execute()) {
+                        // Commit the transaction
+                        mysqli_commit($con);
+                        $stmt1->close();
+                        
+                        // Clear session data
+                        unset($_SESSION['temp_user'], $_SESSION['otp'], $_SESSION['otp_expiry']);
+                        
+                        echo "<script>
+                            alert('Registration successful! You can now log in.');
+                            window.location.href='login.php';
+                        </script>";
+                        exit;
+                    } else {
+                        $error_code = $stmt1->errno;
+                        $error_message = $stmt1->error;
+                        $stmt1->close();
+                        
+                        // Handle specific MySQL error codes
+                        if ($error_code == 1062) { // Duplicate entry
+                            if (strpos($error_message, 'username') !== false) {
+                                $error = 'This username is already taken. Please choose a different username.';
+                            } elseif (strpos($error_message, 'email') !== false) {
+                                $error = 'This email is already registered. Please use a different email or try logging in.';
+                            } elseif (strpos($error_message, 'user_id') !== false) {
+                                $error = 'User ID conflict. Please try registering again.';
+                            } else {
+                                $error = 'This information is already registered. Please check your details.';
+                            }
+                        } elseif ($error_code == 1048) { // NULL value in NOT NULL field
+                            $error = 'Missing required information. Please ensure all fields are filled.';
+                        } else {
+                            $error = 'Database error: ' . htmlspecialchars($error_message) . ' (Error Code: ' . $error_code . ')';
+                        }
+                        
+                        throw new Exception("Failed to insert user data: " . $error_message . " (Error Code: " . $error_code . ")");
+                    }
+
+                } catch (Exception $e) {
+                    mysqli_rollback($con);
+                    error_log('Database Transaction Error: ' . $e->getMessage());
+                    // Error message already set above, or use generic one if not set
+                    if (empty($error)) {
+                        $error = 'Database error during registration. Please try again later.';
+                    }
+                }
             }
 
         } else {
