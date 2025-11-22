@@ -51,6 +51,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($error)) {
+        $usernameEscaped = mysqli_real_escape_string($con, $username);
+        $check_username = mysqli_query($con, "SELECT username FROM user_account WHERE username='$usernameEscaped'");
+        if ($check_username && mysqli_num_rows($check_username) > 0) {
+            $error = 'The username is already taken. Please choose a different username.';
+        }
+    }
+
+    if (empty($error)) {
         $emailEscaped = mysqli_real_escape_string($con, $email);
         $check_email = mysqli_query($con, "SELECT email FROM user_account WHERE email='$emailEscaped'");
         if ($check_email && mysqli_num_rows($check_email) > 0) {
@@ -241,8 +249,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <option value="" disabled <?php echo $gender === '' ? 'selected' : ''; ?>>Select gender</option>
                                     <option value="male" <?php echo $gender === 'male' ? 'selected' : ''; ?>>Male</option>
                                     <option value="female" <?php echo $gender === 'female' ? 'selected' : ''; ?>>Female</option>
-                                  
-                                    <option value="prefer_not_to_say" <?php echo $gender === 'prefer_not_to_say' ? 'selected' : ''; ?>>Prefer not to say</option>
                                 </select>
                             </div>
                         </div>

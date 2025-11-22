@@ -414,9 +414,6 @@
           <button class="quick-question-btn" data-question="Where are you located?">
             <i class="fas fa-map-marker-alt"></i> Location
           </button>
-          <button class="quick-question-btn" data-question="Do you accept insurance?">
-            <i class="fas fa-file-invoice-dollar"></i> Insurance
-          </button>
           <button class="quick-question-btn" data-question="How much is a dental checkup?">
             <i class="fas fa-dollar-sign"></i> Checkup Cost
           </button>
@@ -543,13 +540,11 @@ Cash Payment:
 Final Step:
 After booking, you'll receive a confirmation via email and SMS once the dentist approves your appointment.
 
-Ready to book your appointment? Visit our booking page or call us at 09458471502!`,
+Ready to book your appointment? Visit our booking page or contact us:\nPhone: 09458471502\nEmail: landerodentalclinic@gmail.com`,
 
       "What are your opening hours?": `Our clinic hours are:
 
-Monday - Friday: 9:00 AM - 6:00 PM
-Saturday: 9:00 AM - 2:00 PM
-Sunday: Closed
+Monday - Sunday: 8:00 AM - 8:00 PM
 
 We recommend booking appointments in advance.`,
 
@@ -769,7 +764,12 @@ For accurate pricing information, we recommend scheduling a consultation where w
         removeTypingIndicator();
         
         if (data.answer) {
-          addMessage(data.answer, 'bot');
+          // Remove asterisks from long responses
+          let cleanedAnswer = data.answer;
+          if (cleanedAnswer.length > 100) {
+            cleanedAnswer = cleanedAnswer.replace(/\*/g, '');
+          }
+          addMessage(cleanedAnswer, 'bot');
         } else {
           addMessage("I'm sorry, I didn't get a response. Please try again.", 'bot');
         }
@@ -779,7 +779,7 @@ For accurate pricing information, we recommend scheduling a consultation where w
       .catch(error => {
         console.error('Error:', error);
         removeTypingIndicator();
-        addMessage("I'm having trouble connecting right now. You can ask me about our services, hours, location, or call us directly at 09458471502.", 'bot');
+        addMessage("I'm having trouble connecting right now. You can ask me about our services, hours, location, or contact us directly at:\nPhone: 09458471502\nEmail: landerodentalclinic@gmail.com", 'bot');
         addFollowUpQuestions();
       });
     }

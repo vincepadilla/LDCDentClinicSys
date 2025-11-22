@@ -626,6 +626,11 @@ tr:hover {
     background-color: rgba(231, 111, 81, 0.2);
 }
 
+.status-follow-up {
+    background-color: rgba(196, 181, 253, 0.3);
+    color: #6D28D9;
+}
+
 /* Payment Status Styles */
 .status-paid {
     background-color: rgba(42, 157, 143, 0.2);

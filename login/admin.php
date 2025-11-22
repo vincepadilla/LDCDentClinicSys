@@ -262,6 +262,36 @@ $result = mysqli_query($con, $sql);
                 width: 0%;
             }
         }
+        /* Follow-Up Button Styles */
+        .btn-followup {
+            background: #8B5CF6;
+            color: white;
+        }
+
+        .btn-followup:hover {
+            background: #7C3AED;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="date"],
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -298,7 +328,6 @@ $result = mysqli_query($con, $sql);
 <!-- Controls Popup Modal -->
 <div id="controlsPopupModal" class="modal" style="display:none; z-index: 10001;">
     <div class="modal-content" style="max-width: 400px;">
-        <span class="close" onclick="closeControlsPopup()">&times;</span>
         <h3 style="margin-top: 0; display: flex; align-items: center; gap: 10px;">
             <i class="fas fa-sliders-h"></i> Select Control
         </h3>
@@ -582,10 +611,6 @@ $result = mysqli_query($con, $sql);
                 </select> 
             </div>
 
-            <button class="btn btn-primary" id="openAddAppointmentBtn">
-                <i class="fa-solid fa-calendar-plus"></i> Add Appointment
-            </button>
-            
             <button class="btn btn-accent" onclick="printAppointments()">
                 <i class="fas fa-print"></i> Print
             </button>
@@ -644,7 +669,16 @@ $result = mysqli_query($con, $sql);
                                         onclick="openCompleteAppointmentModal(this)">
                                         <i class="fa-solid fa-calendar-check"></i>
                                     </button>
-                                    
+
+                                    <?php if (strtolower($row['status']) === 'completed'): ?>
+                                    <button type="button" class="action-btn btn-followup" title="Follow-Up"
+                                        data-appointment-id="<?php echo htmlspecialchars($row['appointment_id']); ?>"
+                                        data-patient-id="<?php echo htmlspecialchars($row['patient_id']); ?>"
+                                        data-patient-name="<?php echo htmlspecialchars($row['first_name'] . ' ' . $row['last_name']); ?>"
+                                        onclick="openFollowUpModal(this)">
+                                        <i class="fa-solid fa-arrow-right"></i>
+                                    </button>
+                                    <?php endif; ?>
 
                                     <button type="button" class="action-btn btn-danger" title="No-Show"
                                         data-appointment-id="<?php echo $row['appointment_id']; ?>"
@@ -868,6 +902,50 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             <div style="margin-top: 15px;">
                 <button type="submit" class="btn btn-success">CONFIRM SCHEDULE</button>
                 <button type="button" onclick="closeReschedModal()" class="modal-close-btn">Close</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Follow-Up Modal -->
+<div id="followUpModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h3><i class="fa-solid fa-arrow-right"></i> Schedule Follow-Up Appointment</h3>
+        <form id="followUpForm" action="saveFollowUp.php" method="POST">
+            <input type="hidden" id="followup_patient_id" name="patient_id">
+            <input type="hidden" id="followup_appointment_id" name="original_appointment_id">
+            
+            <div class="form-group">
+                <label for="followup_patient_name">Patient Name:</label>
+                <input type="text" id="followup_patient_name" name="patient_name" readonly required>
+            </div>
+
+            <div class="form-group">
+                <label for="followup_date">Follow-Up Date:</label>
+                <input type="date" id="followup_date" name="appointment_date" required min="<?= date('Y-m-d', strtotime('+1 day')) ?>">
+            </div>
+
+            <div class="form-group">
+                <label for="followup_time">Follow-Up Time:</label>
+                <select id="followup_time" name="time_slot" required>
+                    <option value="">Select Time</option>
+                    <option value="firstBatch">Morning (8AM-9AM)</option>
+                    <option value="secondBatch">Morning (9AM-10AM)</option>
+                    <option value="thirdBatch">Morning (10AM-11AM)</option>
+                    <option value="fourthBatch">Afternoon (11AM-12PM)</option>
+                    <option value="fifthBatch">Afternoon (1PM-2PM)</option>
+                    <option value="sixthBatch">Afternoon (2PM-3PM)</option>
+                    <option value="sevenBatch">Afternoon (3PM-4PM)</option>
+                    <option value="eightBatch">Afternoon (4PM-5PM)</option>
+                    <option value="nineBatch">Afternoon (5PM-6PM)</option>
+                    <option value="tenBatch">Evening (6PM-7PM)</option>
+                    <option value="lastBatch">Evening (7PM-8PM)</option>
+                </select>
+            </div>
+
+            <div style="margin-top: 15px;">
+                <button type="submit" class="btn btn-success">Save Follow-Up</button>
+                <button type="button" onclick="closeFollowUpModal()" class="modal-close-btn">Close</button>
             </div>
         </form>
     </div>
@@ -4879,6 +4957,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 
 
         // Close modals when clicking outside
+        const followUpModal = document.getElementById('followUpModal');
         window.addEventListener('click', function (event) {
             if (event.target === appointmentModal) {
                 appointmentModal.style.display = 'none';
@@ -4889,8 +4968,32 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             if (event.target === dentistModal) {
                 dentistModal.style.display = 'none';
             }
+            if (followUpModal && event.target === followUpModal) {
+                followUpModal.style.display = 'none';
+            }
         });
     });
+
+    // Follow-Up Modal Functions
+    function openFollowUpModal(button) {
+        const appointmentId = button.getAttribute('data-appointment-id');
+        const patientId = button.getAttribute('data-patient-id');
+        const patientName = button.getAttribute('data-patient-name');
+        
+        document.getElementById('followup_patient_id').value = patientId;
+        document.getElementById('followup_appointment_id').value = appointmentId;
+        document.getElementById('followup_patient_name').value = patientName;
+        
+        // Reset form
+        document.getElementById('followup_date').value = '';
+        document.getElementById('followup_time').value = '';
+        
+        document.getElementById('followUpModal').style.display = 'block';
+    }
+
+    function closeFollowUpModal() {
+        document.getElementById('followUpModal').style.display = 'none';
+    }
 
     // Close modal functions
     function closeAddAppointmentModal() {

@@ -2,20 +2,28 @@
 session_start();
 include_once("config.php");
 
-// Check if OTP session exists
-if (!isset($_SESSION['temp_user']) || !isset($_SESSION['otp']) || !isset($_SESSION['otp_expiry'])) {
-    echo "<script>alert('No registration session found. Please register again.'); window.location.href='register.php';</script>";
-    exit;
-}
-
 $error = '';
 $success = '';
+$showSuccessModal = false;
 
-// Check if OTP expired on page load
-if (time() > $_SESSION['otp_expiry']) {
-    unset($_SESSION['temp_user'], $_SESSION['otp'], $_SESSION['otp_expiry']);
-    echo "<script>alert('OTP expired. Please register again.'); window.location.href='register.php';</script>";
-    exit;
+// Check if registration was successful (allow success modal even if session is cleared)
+if (isset($_GET['success']) && $_GET['success'] == '1') {
+    $showSuccessModal = true;
+    $success = 'Registration successful!';
+    // Don't check for session if showing success modal
+} else {
+    // Check if OTP session exists (only if not showing success modal)
+    if (!isset($_SESSION['temp_user']) || !isset($_SESSION['otp']) || !isset($_SESSION['otp_expiry'])) {
+        echo "<script>alert('No registration session found. Please register again.'); window.location.href='register.php';</script>";
+        exit;
+    }
+
+    // Check if OTP expired on page load
+    if (time() > $_SESSION['otp_expiry']) {
+        unset($_SESSION['temp_user'], $_SESSION['otp'], $_SESSION['otp_expiry']);
+        echo "<script>alert('OTP expired. Please register again.'); window.location.href='register.php';</script>";
+        exit;
+    }
 }
 
 if (isset($_POST['submit'])) {
@@ -88,10 +96,11 @@ if (isset($_POST['submit'])) {
                         // Clear session data
                         unset($_SESSION['temp_user'], $_SESSION['otp'], $_SESSION['otp_expiry']);
                         
-                        echo "<script>
-                            alert('Registration successful! You can now log in.');
-                            window.location.href='login.php';
-                        </script>";
+                        // Set success flag for modal display
+                        $_SESSION['registration_success'] = true;
+                        
+                        // Redirect to show success modal (reload page)
+                        header("Location: otpVerification.php?success=1");
                         exit;
                     } else {
                         $error_code = $stmt1->errno;
@@ -134,10 +143,13 @@ if (isset($_POST['submit'])) {
     }
 }
 
-// Calculate remaining time for the timer
-$remaining_time = $_SESSION['otp_expiry'] - time();
-if ($remaining_time < 0) {
-    $remaining_time = 0;
+// Calculate remaining time for the timer (only if session exists)
+$remaining_time = 0;
+if (!$showSuccessModal && isset($_SESSION['otp_expiry'])) {
+    $remaining_time = $_SESSION['otp_expiry'] - time();
+    if ($remaining_time < 0) {
+        $remaining_time = 0;
+    }
 }
 ?>
 
@@ -150,6 +162,208 @@ if ($remaining_time < 0) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="loginpagestyle.css?v=<?php echo time(); ?>">
+    <style>
+        /* Success Modal Styles */
+        .success-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.3s ease-out;
+            backdrop-filter: blur(4px);
+        }
+
+        .success-modal-overlay.show {
+            opacity: 1;
+        }
+
+        .success-modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 0;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 380px;
+            width: 90%;
+            margin: auto;
+            transform: scale(0.7) translateY(-50px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            overflow: hidden;
+        }
+
+        .success-modal-overlay.show .success-modal-content {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+
+        .success-modal-header {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            color: white;
+            padding: 30px 25px;
+            text-align: center;
+        }
+
+        .success-icon-container {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            position: relative;
+        }
+
+        .success-icon-container::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            animation: ripple 1.5s infinite;
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1.3);
+                opacity: 0;
+            }
+        }
+
+        .check-icon {
+            width: 50px;
+            height: 50px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .check-icon svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .check-path {
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            animation: checkmark 0.8s ease-out 0.3s forwards;
+        }
+
+        @keyframes checkmark {
+            0% {
+                stroke-dashoffset: 100;
+            }
+            100% {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        .success-modal-header h2 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .success-modal-body {
+            padding: 25px;
+            text-align: center;
+        }
+
+        .success-modal-body p {
+            color: #6B7280;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0 0 20px 0;
+        }
+
+        .success-modal-footer {
+            padding: 18px 25px;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+            background: #f9fafb;
+        }
+
+        .btn-continue {
+            background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-continue:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-continue:active {
+            transform: translateY(0);
+        }
+
+        /* Loading Animation */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+            .success-modal-content {
+                width: 90%;
+                max-width: 90%;
+            }
+
+            .success-modal-header {
+                padding: 25px 20px;
+            }
+
+            .success-icon-container {
+                width: 80px;
+                height: 80px;
+            }
+
+            .check-icon {
+                width: 50px;
+                height: 50px;
+            }
+
+            .success-modal-header h2 {
+                font-size: 24px;
+            }
+
+            .success-modal-body {
+                padding: 25px 20px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="login-container">
@@ -185,8 +399,8 @@ if ($remaining_time < 0) {
 
                 <div class="welcome-section">
                     <h2>OTP Verification</h2>
-                    <p>Enter the 6-digit code sent to your phone</p>
-                    <p class="phone-number"><?php echo isset($_SESSION['temp_user']['phone']) ? '📱 ' . htmlspecialchars($_SESSION['temp_user']['phone']) : ''; ?></p>
+                    <p>Enter the 6-digit code sent to your Email</p>
+                    <p class="phone-number"><?php echo (isset($_SESSION['temp_user']['email']) && !$showSuccessModal) ? ' ' . htmlspecialchars($_SESSION['temp_user']['email']) : ''; ?></p>
                 </div>
 
                 <?php if (!empty($error)) { ?>
@@ -196,6 +410,33 @@ if ($remaining_time < 0) {
                     </div>
                 <?php } ?>
 
+                <?php if ($showSuccessModal): ?>
+                    <div id="successModal" class="success-modal-overlay show">
+                        <div class="success-modal-content">
+                            <div class="success-modal-header">
+                                <div class="success-icon-container">
+                                    <div class="check-icon">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+                                            <path class="check-path" d="M5 13l4 4L19 7"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <h2>Registration Successful!</h2>
+                            </div>
+                            <div class="success-modal-body">
+                                <p>Your account has been created successfully. You can now log in to access your account and book appointments.</p>
+                            </div>
+                            <div class="success-modal-footer">
+                                <button class="btn-continue" onclick="redirectToLogin()">
+                                    <span>Continue to Login</span>
+                                    <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (!$showSuccessModal): ?>
                 <form action="" method="post" class="auth-form">
                     <div class="form-group">
                         <label for="otp">Enter OTP Code</label>
@@ -234,6 +475,7 @@ if ($remaining_time < 0) {
                         </p>
                     </div>
                 </form>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -346,6 +588,21 @@ if ($remaining_time < 0) {
         document.addEventListener('DOMContentLoaded', function() {
             otpInput.focus();
         });
+
+        // Redirect to login function
+        function redirectToLogin() {
+            window.location.href = 'login.php';
+        }
+
+        // Auto-redirect after 5 seconds if modal is shown
+        <?php if ($showSuccessModal): ?>
+        setTimeout(function() {
+            const modal = document.getElementById('successModal');
+            if (modal && modal.classList.contains('show')) {
+                redirectToLogin();
+            }
+        }, 5000);
+        <?php endif; ?>
     </script>
 </body>
 </html>
