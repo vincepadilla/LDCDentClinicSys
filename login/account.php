@@ -27,11 +27,13 @@ $user = $user_result->fetch_assoc();
 
 // ✅ Fetch most recent appointment (if patient exists)
 $recent_appointments = [];
+$hasFeedback = false;
 if (!empty($user['patient_id'])) {
     // Query for the most recent appointment with payment information
     $appt_query = $con->prepare("
         SELECT a.appointment_id, a.appointment_date, a.appointment_time, 
-               s.service_category, a.status, a.created_at,
+               COALESCE(s.sub_service, s.service_category) as service_display, 
+               s.sub_service, s.service_category, a.status, a.created_at,
                p.method as payment_method, p.status as payment_status
         FROM appointments a
         INNER JOIN services s ON a.service_id = s.service_id
@@ -53,6 +55,14 @@ if (!empty($user['patient_id'])) {
     while ($row = $appt_result->fetch_assoc()) {
         $recent_appointments[] = $row;
     }
+    
+    // Check if user already has feedback
+    $feedback_check = $con->prepare("SELECT feedback_id FROM feedback WHERE user_id = ?");
+    $feedback_check->bind_param("s", $user_id);
+    $feedback_check->execute();
+    $feedback_result = $feedback_check->get_result();
+    $hasFeedback = $feedback_result->num_rows > 0;
+    $feedback_check->close();
 }
 
 // ✅ Debug output to browser console
@@ -352,12 +362,46 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
         .confirmation-btn-confirm:hover {
             background: #DC2626;
         }
+
+        /* Feedback Button Styles */
+        .btn-feedback {
+            background: #10B981;
+            color: white;
+        }
+
+        .btn-feedback:hover:not(.disabled) {
+            background: #059669;
+        }
+
+        .btn-feedback.disabled {
+            background: #6B7280;
+        }
     </style>
 </head>
 <body>
 
 <!-- Notification Container -->
 <div class="notification-container" id="notificationContainer"></div>
+
+<?php
+// Display feedback success/error messages
+if (isset($_SESSION['feedback_success'])) {
+    echo "<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showNotification('success', 'Feedback Posted!', '" . addslashes($_SESSION['feedback_success']) . "');
+        });
+    </script>";
+    unset($_SESSION['feedback_success']);
+}
+if (isset($_SESSION['feedback_error'])) {
+    echo "<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showNotification('error', 'Error', '" . addslashes($_SESSION['feedback_error']) . "');
+        });
+    </script>";
+    unset($_SESSION['feedback_error']);
+}
+?>
 
 <!-- Confirmation Modal -->
 <div id="confirmationModal" class="confirmation-modal">
@@ -441,6 +485,43 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
                 <p class="card-subtitle">View and manage your most recent appointment</p>
 
                 <?php if (!empty($recent_appointments)): ?>
+                    <?php 
+                    // Check if any appointment is completed and user hasn't posted feedback
+                    $showFeedbackButton = false;
+                    $completedAppointmentId = null;
+                    foreach ($recent_appointments as $appt) {
+                        if (($appt['status'] == 'Complete' || $appt['status'] == 'Completed') && !$hasFeedback) {
+                            $showFeedbackButton = true;
+                            $completedAppointmentId = $appt['appointment_id'];
+                            break;
+                        }
+                    }
+                    ?>
+                    
+                    <?php if ($showFeedbackButton): ?>
+                        <div style="margin-bottom: 20px; padding: 15px; background: #f0fdf4; border: 2px solid #10B981; border-radius: 8px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
+                                <div>
+                                    <p style="margin: 0; font-weight: 600; color: #065f46;">Share Your Experience</p>
+                                    <p style="margin: 5px 0 0 0; font-size: 14px; color: #047857;">Help us improve by posting your feedback</p>
+                                </div>
+                                <button type="button" 
+                                   class="btn btn-feedback"
+                                   data-appointment-id="<?= htmlspecialchars($completedAppointmentId); ?>"
+                                   onclick="openFeedbackModal(this)">
+                                    Post Feedback
+                                </button>
+                            </div>
+                        </div>
+                    <?php elseif ($hasFeedback): ?>
+                        <div style="margin-bottom: 20px; padding: 15px; background: #f0f9ff; border: 2px solid #3b82f6; border-radius: 8px;">
+                            <p style="margin: 0; color: #1e40af; display: flex; align-items: center; gap: 8px;">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Thank you! You have already posted your feedback.</span>
+                            </p>
+                        </div>
+                    <?php endif; ?>
+                    
                     <?php foreach ($recent_appointments as $recent_appointment): ?>
                         <?php
                         $status = $recent_appointment['status'];
@@ -507,7 +588,7 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
                                 </div>
                                 <div class="detail-item">
                                     <span class="detail-label">Service</span>
-                                    <span class="detail-value"><?= htmlspecialchars($recent_appointment['service_category']); ?></span>
+                                    <span class="detail-value"><?= htmlspecialchars($recent_appointment['service_display'] ?? $recent_appointment['sub_service'] ?? $recent_appointment['service_category'] ?? 'N/A'); ?></span>
                                 </div>
                                 <div class="detail-item">
                                     <span class="detail-label">Dentist</span>
@@ -651,6 +732,30 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
     </div>
 </div>
 
+<!-- Feedback Modal -->
+<div id="feedbackModal" class="edit-modal">
+    <div class="edit-modal-content">
+        <span class="close" onclick="closeFeedbackModal()">&times;</span>
+        <h3>POST YOUR FEEDBACK</h3>
+        <p style="color: #6B7280; margin-bottom: 20px; font-size: 14px;">Share your experience with us. Your feedback will be displayed on our homepage.</p>
+        <form action="submitFeedback.php" method="POST" id="feedbackForm">
+            <input type="hidden" name="appointment_id" id="feedback_appointment_id" value="">
+            <div class="form-group full-width">
+                <label>Your Feedback:</label>
+                <textarea name="feedback_text" id="feedback_text" rows="6" placeholder="Tell us about your experience..." required maxlength="500"></textarea>
+                <div style="text-align: right; margin-top: 5px; font-size: 12px; color: #6B7280;">
+                    <span id="charCount">0</span>/500 characters
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="button" class="btn btn-cancel" onclick="closeFeedbackModal()">Cancel</button>
+                <button type="submit" class="btn-submit">POST FEEDBACK</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Change Credentials Modal -->
 <div id="credentialsModal" class="edit-modal">
     <div class="edit-modal-content">
@@ -726,13 +831,71 @@ function closeCredentialsModal() {
     setTimeout(() => modal.style.display = "none", 300);
 }
 
+// Feedback Modal functions
+function openFeedbackModal(button) {
+    const modal = document.getElementById("feedbackModal");
+    const appointmentId = button.getAttribute('data-appointment-id');
+    document.getElementById('feedback_appointment_id').value = appointmentId;
+    document.getElementById('feedback_text').value = '';
+    document.getElementById('charCount').textContent = '0';
+    modal.style.display = "flex";
+    setTimeout(() => modal.classList.add("show"), 10);
+}
+
+function closeFeedbackModal() {
+    const modal = document.getElementById("feedbackModal");
+    modal.classList.remove("show");
+    setTimeout(() => modal.style.display = "none", 300);
+}
+
+// Character counter for feedback
+document.addEventListener('DOMContentLoaded', function() {
+    const feedbackText = document.getElementById('feedback_text');
+    const charCount = document.getElementById('charCount');
+    
+    if (feedbackText && charCount) {
+        feedbackText.addEventListener('input', function() {
+            const length = this.value.length;
+            charCount.textContent = length;
+            
+            if (length > 500) {
+                charCount.style.color = '#EF4444';
+            } else if (length > 400) {
+                charCount.style.color = '#F59E0B';
+            } else {
+                charCount.style.color = '#6B7280';
+            }
+        });
+    }
+    
+    // Form submission handler
+    const feedbackForm = document.getElementById('feedbackForm');
+    if (feedbackForm) {
+        feedbackForm.addEventListener('submit', function(e) {
+            const feedbackText = document.getElementById('feedback_text').value.trim();
+            if (feedbackText.length < 10) {
+                e.preventDefault();
+                showNotification('warning', 'Feedback Too Short', 'Please provide at least 10 characters of feedback.');
+                return false;
+            }
+            if (feedbackText.length > 500) {
+                e.preventDefault();
+                showNotification('error', 'Feedback Too Long', 'Please keep your feedback under 500 characters.');
+                return false;
+            }
+        });
+    }
+});
+
 // Close modals when clicking outside
 window.onclick = function(event) {
     const editModal = document.getElementById("editModal");
     const credentialsModal = document.getElementById("credentialsModal");
+    const feedbackModal = document.getElementById("feedbackModal");
     
     if (event.target === editModal) closeEditModal();
     if (event.target === credentialsModal) closeCredentialsModal();
+    if (event.target === feedbackModal) closeFeedbackModal();
 };
 
 // Password visibility toggle

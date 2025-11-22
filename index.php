@@ -310,6 +310,103 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                 gap: 10px;
             }
         }
+
+        /* Feedback Section Styles */
+        .feedback-section {
+            padding: 80px 0;
+            background:rgb(255, 255, 255);
+        }
+
+        .feedback-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .feedback-card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .feedback-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .feedback-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .feedback-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary-color), #3b82f6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .feedback-author {
+            flex: 1;
+        }
+
+        .feedback-author-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: #111827;
+            margin: 0 0 4px 0;
+        }
+
+        .feedback-date {
+            font-size: 13px;
+            color: #6B7280;
+            margin: 0;
+        }
+
+        .feedback-text {
+            color: #4B5563;
+            line-height: 1.7;
+            font-size: 15px;
+            margin: 0;
+        }
+
+        .feedback-empty {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: #6B7280;
+        }
+
+        .feedback-empty i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .feedback-loading {
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 768px) {
+            .feedback-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -523,6 +620,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                         <p class="specialty">Dentist</p>
                         <p class="experience">With over 10 years of experience in providing exceptional dental care.</p>
                     </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Patient Feedback Section -->
+    <section class="feedback-section" id="feedback">
+        <div class="container">
+            <div class="section-title">
+                <h2>Patient Feedback</h2>
+                <p>See what our patients have to say about their experience</p>
+            </div>
+            
+            <div class="feedback-grid" id="feedbackGrid">
+                <div class="feedback-loading" style="text-align: center; padding: 40px;">
+                    <i class="fas fa-spinner fa-spin" style="font-size: 30px; color: var(--primary-color);"></i>
+                    <p style="margin-top: 15px; color: #6B7280;">Loading feedback...</p>
                 </div>
             </div>
         </div>
@@ -1328,6 +1442,85 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         }
     })();
     <?php endif; ?>
+
+    // Load feedbacks for homepage
+    async function loadFeedbacks() {
+        try {
+            const response = await fetch('getFeedbacks.php');
+            const data = await response.json();
+            
+            const feedbackGrid = document.getElementById('feedbackGrid');
+            if (!feedbackGrid) return;
+            
+            if (data.success && data.feedbacks && data.feedbacks.length > 0) {
+                feedbackGrid.innerHTML = '';
+                
+                data.feedbacks.forEach(feedback => {
+                    const card = document.createElement('div');
+                    card.className = 'feedback-card';
+                    
+                    // Get initials for avatar
+                    const nameParts = feedback.patient_name.trim().split(' ');
+                    const initials = nameParts.length >= 2 
+                        ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+                        : nameParts[0][0].toUpperCase();
+                    
+                    // Format date
+                    const date = new Date(feedback.created_at);
+                    const formattedDate = date.toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                    });
+                    
+                    card.innerHTML = `
+                        <div class="feedback-header">
+                            <div class="feedback-avatar">${initials}</div>
+                            <div class="feedback-author">
+                                <h4 class="feedback-author-name">${escapeHtml(feedback.patient_name)}</h4>
+                                <p class="feedback-date">${formattedDate}</p>
+                            </div>
+                        </div>
+                        <p class="feedback-text">${escapeHtml(feedback.feedback_text)}</p>
+                    `;
+                    
+                    feedbackGrid.appendChild(card);
+                });
+            } else {
+                feedbackGrid.innerHTML = `
+                    <div class="feedback-empty">
+                        <i class="fas fa-comment-slash"></i>
+                        <h3>No feedback yet</h3>
+                        <p>Be the first to share your experience with us!</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error loading feedbacks:', error);
+            const feedbackGrid = document.getElementById('feedbackGrid');
+            if (feedbackGrid) {
+                feedbackGrid.innerHTML = `
+                    <div class="feedback-empty">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <h3>Unable to load feedback</h3>
+                        <p>Please try again later.</p>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    // Helper function to escape HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Load feedbacks when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        loadFeedbacks();
+    });
 </script>
 
 </body>
