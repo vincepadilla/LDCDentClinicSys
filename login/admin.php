@@ -621,11 +621,13 @@ $result = mysqli_query($con, $sql);
                             <td><span class="status <?php echo $statusClass; ?>"><?php echo htmlspecialchars($row['status']); ?></span></td>
                             <td>
                                 <div class="action-btns">
+                                    <?php if (strtolower($row['status']) === 'pending'): ?>
                                     <button type="button" class="action-btn btn-primary-confirmed" title="Confirm"
                                         data-appointment-id="<?php echo $row['appointment_id']; ?>"
                                         onclick="confirmAppointment(this)">
                                         <i class="fas fa-check"></i>
                                     </button>
+                                    <?php endif; ?>
 
                                     <a href="#" 
                                         class="action-btn btn-accent" 
@@ -1799,14 +1801,15 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                             <td><?php echo htmlspecialchars($row['notes']); ?></td>
                             <td>
                                 <div class="action-btns">
+                                    <button type="button" class="action-btn btn-primary" title="Export/Print" onclick="printTreatmentHistory('<?php echo htmlspecialchars($row['patient_id']); ?>')">
+                                        <i class="fa-solid fa-print"></i>
+                                    </button>
                                     <form action="archiveHistory.php" method="POST" style="display:inline;">
                                         <input type="hidden" name="patient_id" value="<?php echo $row['patient_id']; ?>">
-                                        <button type="submit" class="action-btn btn-primary-confirmed" title="Archive">
+                                        <button type="submit" class="action-btn btn-danger" title="Archive">
                                             <i class="fa-solid fa-box-archive"></i>
                                         </button>
                                     </form>
-
-                                    
                                 </div>
                             </td>
                         </tr>
@@ -3760,7 +3763,12 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         const newModalContent = `
             <div class="treatment-modal-header">
                 <h3><i class="fa-solid fa-user"></i> Patient Details - ID: ${patientId}</h3>
-                <span class="treatment-close-btn" onclick="closeTreatmentModal()">&times;</span>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <button type="button" class="btn btn-primary" onclick="exportPatientDetails('${patientId}')" style="padding: 8px 15px; font-size: 14px; border: none; border-radius: 4px; cursor: pointer; background-color: #007bff; color: white;">
+                        <i class="fa-solid fa-print"></i> Export/Print
+                    </button>
+                    <span class="treatment-close-btn" onclick="closeTreatmentModal()">&times;</span>
+                </div>
             </div>
             <div class="treatment-modal-body">
                 <!-- Treatment History Section -->
@@ -3871,6 +3879,475 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                 console.error("Error fetching treatment history:", error);
                 tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;color:red;'>Error loading treatment history</td></tr>";
             });
+    }
+
+    function printTreatmentHistory(patientId) {
+        // Fetch patient information
+        Promise.all([
+            fetch('getPatients.php?patient_id=' + encodeURIComponent(patientId))
+                .then(response => response.json())
+                .catch(() => ({ patient_id: patientId, first_name: '', last_name: '' })),
+            fetch('getTreatmentHistory.php?patient_id=' + encodeURIComponent(patientId))
+                .then(response => response.json())
+                .catch(() => ({ status: 'error', data: [] }))
+        ]).then(([patientData, treatmentData]) => {
+            const patientName = patientData.first_name && patientData.last_name 
+                ? `${patientData.first_name} ${patientData.last_name}` 
+                : `Patient ID: ${patientId}`;
+            
+            // Create print window
+            const printWindow = window.open('', '_blank');
+            const currentDate = new Date().toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            
+            let htmlContent = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Treatment History - ${patientName}</title>
+                    <style>
+                        @media print {
+                            @page {
+                                margin: 1cm;
+                            }
+                        }
+                        body {
+                            font-family: Arial, sans-serif;
+                            margin: 20px;
+                            color: #333;
+                        }
+                        .header {
+                            text-align: center;
+                            border-bottom: 3px solid #333;
+                            padding-bottom: 20px;
+                            margin-bottom: 30px;
+                        }
+                        .header h1 {
+                            margin: 0;
+                            color: #2c3e50;
+                            font-size: 24px;
+                        }
+                        .header h2 {
+                            margin: 10px 0;
+                            color: #34495e;
+                            font-size: 18px;
+                            font-weight: normal;
+                        }
+                        .patient-info {
+                            margin-bottom: 30px;
+                            padding: 15px;
+                            background-color: #f8f9fa;
+                            border-left: 4px solid #007bff;
+                        }
+                        .patient-info p {
+                            margin: 5px 0;
+                            font-size: 14px;
+                        }
+                        .patient-info strong {
+                            color: #2c3e50;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 20px;
+                            font-size: 12px;
+                        }
+                        th {
+                            background-color: #007bff;
+                            color: white;
+                            padding: 12px;
+                            text-align: left;
+                            border: 1px solid #ddd;
+                        }
+                        td {
+                            padding: 10px;
+                            border: 1px solid #ddd;
+                        }
+                        tr:nth-child(even) {
+                            background-color: #f8f9fa;
+                        }
+                        .no-data {
+                            text-align: center;
+                            padding: 40px;
+                            color: #999;
+                            font-style: italic;
+                        }
+                        .footer {
+                            margin-top: 40px;
+                            padding-top: 20px;
+                            border-top: 2px solid #ddd;
+                            text-align: center;
+                            font-size: 11px;
+                            color: #666;
+                        }
+                        .total-cost {
+                            margin-top: 20px;
+                            text-align: right;
+                            font-size: 16px;
+                            font-weight: bold;
+                            color: #2c3e50;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>Landero Dental Clinic</h1>
+                        <h2>Patient Treatment History Report</h2>
+                    </div>
+                    
+                    <div class="patient-info">
+                        <p><strong>Patient ID:</strong> ${patientId}</p>
+                        <p><strong>Patient Name:</strong> ${patientName}</p>
+                        <p><strong>Report Date:</strong> ${currentDate}</p>
+                    </div>
+            `;
+            
+            if (treatmentData.status === 'success' && treatmentData.data && treatmentData.data.length > 0) {
+                htmlContent += `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Treatment</th>
+                                <th>Prescription Given</th>
+                                <th>Notes</th>
+                                <th>Treatment Cost</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                let totalCost = 0;
+                treatmentData.data.forEach(treatment => {
+                    const cost = parseFloat(treatment.treatment_cost) || 0;
+                    totalCost += cost;
+                    htmlContent += `
+                        <tr>
+                            <td>${treatment.treatment || 'N/A'}</td>
+                            <td>${treatment.prescription_given || 'N/A'}</td>
+                            <td>${treatment.notes || 'N/A'}</td>
+                            <td>₱${cost.toFixed(2)}</td>
+                            <td>${treatment.created_at || 'N/A'}</td>
+                        </tr>
+                    `;
+                });
+                
+                htmlContent += `
+                        </tbody>
+                    </table>
+                    <div class="total-cost">
+                        <strong>Total Treatment Cost: ₱${totalCost.toFixed(2)}</strong>
+                    </div>
+                `;
+            } else {
+                htmlContent += `
+                    <div class="no-data">
+                        <p>No treatment history found for this patient.</p>
+                    </div>
+                `;
+            }
+            
+            htmlContent += `
+                    <div class="footer">
+                        <p>Generated on ${currentDate}</p>
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+            
+            // Wait for content to load, then print
+            setTimeout(() => {
+                printWindow.print();
+            }, 250);
+        }).catch(error => {
+            console.error('Error generating print document:', error);
+            alert('Error loading treatment history. Please try again.');
+        });
+    }
+
+    function exportPatientDetails(patientId) {
+        // Fetch all patient information
+        Promise.all([
+            fetch('getPatients.php?patient_id=' + encodeURIComponent(patientId))
+                .then(response => response.json())
+                .catch(() => ({ patient_id: patientId, first_name: '', last_name: '', birthdate: '', gender: '', email: '', phone: '', address: '' })),
+            fetch('getTreatmentHistory.php?patient_id=' + encodeURIComponent(patientId))
+                .then(response => response.json())
+                .catch(() => ({ status: 'error', data: [] })),
+            fetch('getAppointmentHistory.php?patient_id=' + encodeURIComponent(patientId))
+                .then(response => response.json())
+                .catch(() => ({ status: 'error', data: [] })),
+            fetch('getLastTransaction.php?patient_id=' + encodeURIComponent(patientId))
+                .then(response => response.json())
+                .catch(() => ({ status: 'error', data: null }))
+        ]).then(([patientData, treatmentData, appointmentData, transactionData]) => {
+            const patientName = patientData.first_name && patientData.last_name 
+                ? `${patientData.first_name} ${patientData.last_name}` 
+                : `Patient ID: ${patientId}`;
+            
+            // Create print window
+            const printWindow = window.open('', '_blank');
+            const currentDate = new Date().toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            
+            let htmlContent = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Patient Details - ${patientName}</title>
+                    <style>
+                        @media print {
+                            @page {
+                                margin: 1cm;
+                            }
+                        }
+                        body {
+                            font-family: Arial, sans-serif;
+                            margin: 20px;
+                            color: #333;
+                        }
+                        .header {
+                            text-align: center;
+                            border-bottom: 3px solid #333;
+                            padding-bottom: 20px;
+                            margin-bottom: 30px;
+                        }
+                        .header h1 {
+                            margin: 0;
+                            color: #2c3e50;
+                            font-size: 24px;
+                        }
+                        .header h2 {
+                            margin: 10px 0;
+                            color: #34495e;
+                            font-size: 18px;
+                            font-weight: normal;
+                        }
+                        .patient-info {
+                            margin-bottom: 30px;
+                            padding: 15px;
+                            background-color: #f8f9fa;
+                            border-left: 4px solid #007bff;
+                        }
+                        .patient-info p {
+                            margin: 5px 0;
+                            font-size: 14px;
+                        }
+                        .patient-info strong {
+                            color: #2c3e50;
+                        }
+                        .section-title {
+                            font-size: 18px;
+                            color: #2c3e50;
+                            margin-top: 30px;
+                            margin-bottom: 15px;
+                            padding-bottom: 10px;
+                            border-bottom: 2px solid #007bff;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 10px;
+                            margin-bottom: 20px;
+                            font-size: 12px;
+                        }
+                        th {
+                            background-color: #007bff;
+                            color: white;
+                            padding: 12px;
+                            text-align: left;
+                            border: 1px solid #ddd;
+                        }
+                        td {
+                            padding: 10px;
+                            border: 1px solid #ddd;
+                        }
+                        tr:nth-child(even) {
+                            background-color: #f8f9fa;
+                        }
+                        .no-data {
+                            text-align: center;
+                            padding: 20px;
+                            color: #999;
+                            font-style: italic;
+                        }
+                        .footer {
+                            margin-top: 40px;
+                            padding-top: 20px;
+                            border-top: 2px solid #ddd;
+                            text-align: center;
+                            font-size: 11px;
+                            color: #666;
+                        }
+                        .total-cost {
+                            margin-top: 20px;
+                            text-align: right;
+                            font-size: 16px;
+                            font-weight: bold;
+                            color: #2c3e50;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>Landero Dental Clinic</h1>
+                        <h2>Patient Complete Details Report</h2>
+                    </div>
+                    
+                    <div class="patient-info">
+                        <p><strong>Patient ID:</strong> ${patientId}</p>
+                        <p><strong>Patient Name:</strong> ${patientName}</p>
+                        ${patientData.birthdate ? `<p><strong>Birthdate:</strong> ${new Date(patientData.birthdate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>` : ''}
+                        ${patientData.gender ? `<p><strong>Gender:</strong> ${patientData.gender}</p>` : ''}
+                        ${patientData.email ? `<p><strong>Email:</strong> ${patientData.email}</p>` : ''}
+                        ${patientData.phone ? `<p><strong>Phone:</strong> ${patientData.phone}</p>` : ''}
+                        ${patientData.address ? `<p><strong>Address:</strong> ${patientData.address}</p>` : ''}
+                        <p><strong>Report Date:</strong> ${currentDate}</p>
+                    </div>
+            `;
+            
+            // Treatment History Section
+            htmlContent += `<div class="section-title">Treatment History</div>`;
+            if (treatmentData.status === 'success' && treatmentData.data && treatmentData.data.length > 0) {
+                htmlContent += `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Treatment</th>
+                                <th>Prescription Given</th>
+                                <th>Notes</th>
+                                <th>Treatment Cost</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                let totalCost = 0;
+                treatmentData.data.forEach(treatment => {
+                    const cost = parseFloat(treatment.treatment_cost) || 0;
+                    totalCost += cost;
+                    htmlContent += `
+                        <tr>
+                            <td>${treatment.treatment || 'N/A'}</td>
+                            <td>${treatment.prescription_given || 'N/A'}</td>
+                            <td>${treatment.notes || 'N/A'}</td>
+                            <td>₱${cost.toFixed(2)}</td>
+                            <td>${treatment.created_at || 'N/A'}</td>
+                        </tr>
+                    `;
+                });
+                
+                htmlContent += `
+                        </tbody>
+                    </table>
+                    <div class="total-cost">
+                        <strong>Total Treatment Cost: ₱${totalCost.toFixed(2)}</strong>
+                    </div>
+                `;
+            } else {
+                htmlContent += `<div class="no-data"><p>No treatment history found for this patient.</p></div>`;
+            }
+            
+            // Appointment History Section
+            htmlContent += `<div class="section-title">Appointment History</div>`;
+            if (appointmentData.status === 'success' && appointmentData.data && appointmentData.data.length > 0) {
+                htmlContent += `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Appointment ID</th>
+                                <th>Dentist</th>
+                                <th>Service</th>
+                                <th>Branch</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                appointmentData.data.forEach(appointment => {
+                    htmlContent += `
+                        <tr>
+                            <td>${appointment.appointment_id || 'N/A'}</td>
+                            <td>${appointment.dentist_name || 'N/A'}</td>
+                            <td>${appointment.service_name || 'N/A'}</td>
+                            <td>${appointment.branch || 'N/A'}</td>
+                            <td>${appointment.appointment_date || 'N/A'}</td>
+                            <td>${appointment.appointment_time || 'N/A'}</td>
+                        </tr>
+                    `;
+                });
+                
+                htmlContent += `
+                        </tbody>
+                    </table>
+                `;
+            } else {
+                htmlContent += `<div class="no-data"><p>No appointment history found for this patient.</p></div>`;
+            }
+            
+            // Last Transaction Section
+            htmlContent += `<div class="section-title">Last Transaction</div>`;
+            if (transactionData.status === 'success' && transactionData.data) {
+                const transaction = transactionData.data;
+                htmlContent += `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Payment ID</th>
+                                <th>Method</th>
+                                <th>Account Name</th>
+                                <th>Amount</th>
+                                <th>Reference No</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>${transaction.payment_id || 'N/A'}</td>
+                                <td>${transaction.method || 'N/A'}</td>
+                                <td>${transaction.account_name || 'N/A'}</td>
+                                <td>₱${parseFloat(transaction.amount || 0).toFixed(2)}</td>
+                                <td>${transaction.reference_no || 'N/A'}</td>
+                                <td>${transaction.status || 'N/A'}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `;
+            } else {
+                htmlContent += `<div class="no-data"><p>No transaction history found for this patient.</p></div>`;
+            }
+            
+            htmlContent += `
+                    <div class="footer">
+                        <p>Generated on ${currentDate}</p>
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+            
+            // Wait for content to load, then print
+            setTimeout(() => {
+                printWindow.print();
+            }, 250);
+        }).catch(error => {
+            console.error('Error generating print document:', error);
+            alert('Error loading patient details. Please try again.');
+        });
     }
 
     function loadAppointmentHistory(patientId) {
