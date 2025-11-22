@@ -104,6 +104,212 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                 height: 220px;
             }
         }
+
+        /* Closure Modal Popup Styles */
+        .closure-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.3s ease-out;
+            backdrop-filter: blur(4px);
+        }
+
+        .closure-modal-overlay.show {
+            opacity: 1;
+        }
+
+        .closure-modal-container {
+            position: relative;
+            z-index: 10001;
+        }
+
+        .closure-modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 0;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: scale(0.7) translateY(-50px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .closure-modal-overlay.show .closure-modal-content {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+
+        .closure-modal-header {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 20px 20px 0 0;
+            text-align: center;
+        }
+
+        .closure-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .closure-icon i {
+            font-size: 40px;
+            color: white;
+        }
+
+        .closure-modal-header h2 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .closure-modal-body {
+            padding: 30px;
+        }
+
+        .closure-date-info,
+        .closure-reason-info {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #dc2626;
+        }
+
+        .closure-date-info i,
+        .closure-reason-info i {
+            font-size: 24px;
+            color: #dc2626;
+            margin-top: 5px;
+        }
+
+        .closure-date-info strong,
+        .closure-reason-info strong {
+            display: block;
+            color: #1f2937;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .closure-date-info p,
+        .closure-reason-info p {
+            margin: 0;
+            color: #4b5563;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .closure-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .closure-badge.full-day {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .closure-badge.no-new {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .closure-modal-footer {
+            padding: 20px 30px;
+            border-top: 1px solid #e5e7eb;
+            text-align: right;
+            background: #f9fafb;
+            border-radius: 0 0 20px 20px;
+        }
+
+        .btn-close-modal {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-close-modal:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        @media (max-width: 600px) {
+            .closure-modal-content {
+                width: 95%;
+                max-width: 95%;
+                padding: 0;
+            }
+
+            .closure-modal-header {
+                padding: 20px;
+            }
+
+            .closure-icon {
+                width: 60px;
+                height: 60px;
+            }
+
+            .closure-icon i {
+                font-size: 30px;
+            }
+
+            .closure-modal-header h2 {
+                font-size: 20px;
+            }
+
+            .closure-modal-body {
+                padding: 20px;
+            }
+
+            .closure-date-info,
+            .closure-reason-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -502,8 +708,131 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         const popupDate = document.getElementById('popup_date');
         if (popupDate) popupDate.min = minDate;
 
+        // Fetch and disable closed dates
+        fetchClosedDates();
+
         // Initialize modal functionality
         initializeModal();
+    });
+    
+    // Fetch closed dates and disable them in the date picker
+    function fetchClosedDates() {
+        fetch('getClosedDates.php')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.closed_dates && data.closed_dates.length > 0) {
+                    const popupDate = document.getElementById('popup_date');
+                    if (popupDate) {
+                        // Store closed dates for validation
+                        window.closedDates = data.closed_dates;
+                        
+                        // Add event listener to disable closed dates
+                        popupDate.addEventListener('input', function() {
+                            const selectedDate = this.value;
+                            const isClosed = data.closed_dates.some(closed => closed.date === selectedDate);
+                            
+                            if (isClosed) {
+                                const closedDateInfo = data.closed_dates.find(closed => closed.date === selectedDate);
+                                // Show animated popup and clear date
+                                setTimeout(() => {
+                                    showClosurePopup(selectedDate, closedDateInfo.reason || 'Clinic closure', closedDateInfo.closure_type || 'full_day');
+                                    this.value = '';
+                                }, 100);
+                            }
+                        });
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching closed dates:', error);
+            });
+    }
+    
+    // Show animated closure popup
+    function showClosurePopup(date, reason, closureType) {
+        // Format date for display
+        const dateObj = new Date(date);
+        const formattedDate = dateObj.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        // Create modal overlay
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className = 'closure-modal-overlay';
+        modalOverlay.id = 'closureModalOverlay';
+        
+        // Create modal container
+        const modalContainer = document.createElement('div');
+        modalContainer.className = 'closure-modal-container';
+        
+        const modalContent = document.createElement('div');
+        modalContent.className = 'closure-modal-content';
+        
+        const closureTypeBadge = closureType === 'full_day' 
+            ? '<span class="closure-badge full-day">Full Day Closure</span>'
+            : '<span class="closure-badge no-new">No New Appointments</span>';
+        
+        modalContent.innerHTML = `
+            <div class="closure-modal-header">
+                <div class="closure-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h2>Clinic Closed</h2>
+            </div>
+            <div class="closure-modal-body">
+                <div class="closure-date-info">
+                    <i class="fas fa-calendar-times"></i>
+                    <div>
+                        <strong>Selected Date:</strong>
+                        <p>${formattedDate}</p>
+                    </div>
+                </div>
+                <div class="closure-reason-info">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <strong>Reason:</strong>
+                        <p>${reason}</p>
+                    </div>
+                </div>
+                ${closureTypeBadge}
+            </div>
+            <div class="closure-modal-footer">
+                <button class="btn-close-modal" onclick="closeClosurePopup()">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        `;
+        
+        modalContainer.appendChild(modalContent);
+        modalOverlay.appendChild(modalContainer);
+        document.body.appendChild(modalOverlay);
+        
+        // Animate in
+        setTimeout(() => {
+            modalOverlay.classList.add('show');
+        }, 10);
+    }
+    
+    // Close closure popup
+    function closeClosurePopup() {
+        const modalOverlay = document.getElementById('closureModalOverlay');
+        if (modalOverlay) {
+            modalOverlay.classList.remove('show');
+            setTimeout(() => {
+                modalOverlay.remove();
+            }, 300);
+        }
+    }
+    
+    // Close popup when clicking outside
+    document.addEventListener('click', function(event) {
+        const modalOverlay = document.getElementById('closureModalOverlay');
+        if (modalOverlay && event.target === modalOverlay) {
+            closeClosurePopup();
+        }
     });
 
     const isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>; 
@@ -607,19 +936,92 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
     // Time availability check for popup
     function checkAvailability() {
         var selectedDate = $("#popup_date").val();
+        var closureWarningDiv = $("#closure-warning");
+        
+        // Remove any existing closure warning
+        if (closureWarningDiv.length) {
+            closureWarningDiv.remove();
+        }
+        
         if (selectedDate) {
             $.ajax({
                 url: 'getAppointments.php',
                 type: 'GET',
                 data: { date: selectedDate },
                 dataType: 'json',
-                success: function(bookedSlots) {
-                    $("#popup_time option").prop("disabled", false);
-                    bookedSlots.forEach(slot => {
-                        $("#popup_time option[value='" + slot + "']").prop("disabled", true);
-                    });
-                    if ($("#popup_time option:selected").prop("disabled")) {
+                success: function(response) {
+                    // Handle new response format
+                    var bookedSlots = [];
+                    var clinicClosed = false;
+                    var closureReason = '';
+                    var closureType = '';
+                    
+                    if (Array.isArray(response)) {
+                        // Old format - just array of slots
+                        bookedSlots = response;
+                    } else {
+                        // New format - object with closure info
+                        bookedSlots = response.unavailable_slots || [];
+                        clinicClosed = response.clinic_closed || false;
+                        closureReason = response.closure_reason || '';
+                        closureType = response.closure_type || '';
+                    }
+                    
+                    // Show closure warning if clinic is closed
+                    if (clinicClosed) {
+                        var warningHtml = `
+                            <div id="closure-warning" style="background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 15px; margin: 15px 0; border-radius: 5px; display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-exclamation-triangle" style="font-size: 20px;"></i>
+                                <div>
+                                    <strong>Clinic Closed</strong>
+                                    <p style="margin: 5px 0 0 0;">${closureReason || 'The clinic is closed on this date. Please select another date.'}</p>
+                                </div>
+                            </div>
+                        `;
+                        $("#popup_date").after(warningHtml);
+                        
+                        // Disable time slot dropdown
+                        $("#popup_time").prop("disabled", true);
                         $("#popup_time").val('');
+                        $("#popup_time").html('<option value="">Clinic is closed on this date</option>');
+                        
+                        // Disable submit button
+                        $("#popupBookBtn").prop("disabled", true);
+                    } else {
+                        // Enable time slot dropdown
+                        $("#popup_time").prop("disabled", false);
+                        
+                        // Reset time slots
+                        var timeSlotsHtml = `
+                            <option value="">Select a time</option>
+                            <option value="firstBatch">Morning (8AM-9AM)</option>
+                            <option value="secondBatch">Morning (9AM-10AM)</option>
+                            <option value="thirdBatch">Morning (10AM-11AM)</option>
+                            <option value="fourthBatch">Afternoon (11AM-12PM)</option>
+                            <option value="fifthBatch">Afternoon (1PM-2PM)</option>
+                            <option value="sixthBatch">Afternoon (2PM-3PM)</option>
+                            <option value="sevenBatch">Afternoon (3PM-4PM)</option>
+                            <option value="eightBatch">Afternoon (4PM-5PM)</option>
+                            <option value="nineBatch">Afternoon (5PM-6PM)</option>
+                            <option value="tenBatch">Evening (6PM-7PM)</option>
+                            <option value="lastBatch">Evening (7PM-8PM)</option>
+                        `;
+                        $("#popup_time").html(timeSlotsHtml);
+                        
+                        // Disable booked/blocked slots
+                        $("#popup_time option").prop("disabled", false);
+                        bookedSlots.forEach(slot => {
+                            $("#popup_time option[value='" + slot + "']").prop("disabled", true);
+                        });
+                        
+                        if ($("#popup_time option:selected").prop("disabled")) {
+                            $("#popup_time").val('');
+                        }
+                        
+                        // Enable submit button if logged in
+                        if (isLoggedIn) {
+                            $("#popupBookBtn").prop("disabled", false);
+                        }
                     }
                 },
                 error: function(xhr, status, error) {
@@ -629,6 +1031,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         } else {
             $("#popup_time option").prop("disabled", false);
             $("#popup_time").val('');
+            if (closureWarningDiv.length) {
+                closureWarningDiv.remove();
+            }
         }
     }
 

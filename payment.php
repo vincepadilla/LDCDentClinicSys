@@ -10,6 +10,7 @@ if (!isset($_SESSION['userID'])) {
 
 define("TITLE", "Payment");
 include_once('header.php');
+include_once('./login/config.php');
 
 $fname = $lname = $birthdate = $age = $email = $gender = $phone = '';
 $address = $service_id = $subService = $branch = $date = $time = '';
@@ -110,12 +111,288 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
     $branch = htmlspecialchars($_POST['branch'] ?? 'N/A');
     $date = htmlspecialchars($_POST['date'] ?? 'N/A');
     $time = isset($_POST['time']) && isset($timeRanges[$_POST['time']]) ? $timeRanges[$_POST['time']] : 'N/A';
+    $time_slot = htmlspecialchars($_POST['time'] ?? '');
 
     // Format branch names
     if (strtolower($branch) === 'comembo') {
         $branch = 'Comembo Branch';
     } elseif (strtolower($branch) === 'taytay') {
         $branch = 'Taytay Rizal Branch';
+    }
+    
+    // Validate required fields are present
+    if (empty($date) || $date === 'N/A' || empty($time_slot)) {
+        echo "<script>
+            alert('Please select a valid date and time slot for your appointment.');
+            window.location.href='index.php';
+        </script>";
+        exit();
+    }
+    
+    // Check if clinic is closed on the selected date
+    $clinicClosed = false;
+    $closureReason = '';
+    $closureType = '';
+    
+    // Check if clinic_closures table exists
+    $checkTable = "SHOW TABLES LIKE 'clinic_closures'";
+    $tableExists = mysqli_query($con, $checkTable);
+    
+    if ($tableExists && mysqli_num_rows($tableExists) > 0) {
+        $closureQuery = "SELECT closure_type, reason FROM clinic_closures WHERE closure_date = ? AND status = 'active' LIMIT 1";
+        $closureStmt = $con->prepare($closureQuery);
+        if ($closureStmt) {
+            $closureStmt->bind_param("s", $date);
+            $closureStmt->execute();
+            $closureResult = $closureStmt->get_result();
+            
+            if ($closureRow = $closureResult->fetch_assoc()) {
+                $closureType = $closureRow['closure_type'];
+                $closureReason = $closureRow['reason'];
+                
+                // Block appointment if it's a full day closure
+                if ($closureType === 'full_day') {
+                    $clinicClosed = true;
+                }
+            }
+            $closureStmt->close();
+        }
+    }
+    
+    // If clinic is closed, prevent proceeding to payment
+    if ($clinicClosed) {
+        $formattedDate = date('F j, Y', strtotime($date));
+        echo "<!DOCTYPE html>
+        <html lang='en'>
+        <head>
+            <meta charset='UTF-8'>
+            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+            <title>Clinic Closed</title>
+            <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'>
+            <link href='https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap' rel='stylesheet'>
+            <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body {
+                    font-family: 'Poppins', sans-serif;
+                    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    min-height: 100vh;
+                    padding: 20px;
+                }
+                .error-container {
+                    background: white;
+                    border-radius: 20px;
+                    padding: 40px;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+                    text-align: center;
+                    max-width: 500px;
+                    width: 100%;
+                    animation: slideIn 0.4s ease-out;
+                }
+                @keyframes slideIn {
+                    from { transform: translateY(-30px); opacity: 0; }
+                    to { transform: translateY(0); opacity: 1; }
+                }
+                .error-icon {
+                    width: 80px;
+                    height: 80px;
+                    background: #fee2e2;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 20px;
+                    animation: pulse 2s infinite;
+                }
+                @keyframes pulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.05); }
+                }
+                .error-icon i {
+                    font-size: 40px;
+                    color: #dc2626;
+                }
+                h1 {
+                    color: #1f2937;
+                    margin-bottom: 15px;
+                    font-size: 24px;
+                }
+                .error-message {
+                    color: #6b7280;
+                    margin-bottom: 30px;
+                    line-height: 1.6;
+                }
+                .closure-details {
+                    background: #fef3c7;
+                    border-left: 4px solid #f59e0b;
+                    padding: 15px;
+                    border-radius: 8px;
+                    margin-bottom: 25px;
+                    text-align: left;
+                }
+                .closure-details strong {
+                    color: #92400e;
+                    display: block;
+                    margin-bottom: 5px;
+                }
+                .closure-details p {
+                    color: #78350f;
+                    margin: 0;
+                }
+                .btn-back {
+                    background: #3b82f6;
+                    color: white;
+                    padding: 12px 30px;
+                    border: none;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    text-decoration: none;
+                    display: inline-block;
+                }
+                .btn-back:hover {
+                    background: #2563eb;
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+                }
+            </style>
+        </head>
+        <body>
+            <div class='error-container'>
+                <div class='error-icon'>
+                    <i class='fas fa-exclamation-triangle'></i>
+                </div>
+                <h1>Clinic Closed</h1>
+                <div class='error-message'>
+                    Sorry, the clinic is closed on the selected date.
+                </div>
+                <div class='closure-details'>
+                    <strong>Selected Date:</strong>
+                    <p>$formattedDate</p>
+                    <strong style='margin-top: 10px;'>Reason:</strong>
+                    <p>" . htmlspecialchars($closureReason) . "</p>
+                </div>
+                <a href='index.php' class='btn-back'>
+                    <i class='fas fa-arrow-left'></i> Select Another Date
+                </a>
+            </div>
+        </body>
+        </html>";
+        exit();
+    }
+    
+    // Check if the selected time slot is blocked
+    $blockedSlotQuery = "SELECT block_id, reason FROM blocked_time_slots WHERE date = ? AND time_slot = ? LIMIT 1";
+    $blockedStmt = $con->prepare($blockedSlotQuery);
+    if ($blockedStmt) {
+        $blockedStmt->bind_param("ss", $date, $time_slot);
+        $blockedStmt->execute();
+        $blockedResult = $blockedStmt->get_result();
+        
+        if ($blockedResult->num_rows > 0) {
+            $blockedRow = $blockedResult->fetch_assoc();
+            $blockedReason = $blockedRow['reason'] ?? 'Time slot is not available';
+            $formattedDate = date('F j, Y', strtotime($date));
+            echo "<!DOCTYPE html>
+            <html lang='en'>
+            <head>
+                <meta charset='UTF-8'>
+                <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+                <title>Time Slot Unavailable</title>
+                <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'>
+                <link href='https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap' rel='stylesheet'>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body {
+                        font-family: 'Poppins', sans-serif;
+                        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        min-height: 100vh;
+                        padding: 20px;
+                    }
+                    .error-container {
+                        background: white;
+                        border-radius: 20px;
+                        padding: 40px;
+                        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+                        text-align: center;
+                        max-width: 500px;
+                        width: 100%;
+                        animation: slideIn 0.4s ease-out;
+                    }
+                    @keyframes slideIn {
+                        from { transform: translateY(-30px); opacity: 0; }
+                        to { transform: translateY(0); opacity: 1; }
+                    }
+                    .error-icon {
+                        width: 80px;
+                        height: 80px;
+                        background: #fee2e2;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        margin: 0 auto 20px;
+                    }
+                    .error-icon i {
+                        font-size: 40px;
+                        color: #dc2626;
+                    }
+                    h1 {
+                        color: #1f2937;
+                        margin-bottom: 15px;
+                        font-size: 24px;
+                    }
+                    .error-message {
+                        color: #6b7280;
+                        margin-bottom: 30px;
+                        line-height: 1.6;
+                    }
+                    .btn-back {
+                        background: #3b82f6;
+                        color: white;
+                        padding: 12px 30px;
+                        border: none;
+                        border-radius: 8px;
+                        font-size: 16px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: all 0.3s ease;
+                        text-decoration: none;
+                        display: inline-block;
+                    }
+                    .btn-back:hover {
+                        background: #2563eb;
+                        transform: translateY(-2px);
+                        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+                    }
+                </style>
+            </head>
+            <body>
+                <div class='error-container'>
+                    <div class='error-icon'>
+                        <i class='fas fa-clock'></i>
+                    </div>
+                    <h1>Time Slot Unavailable</h1>
+                    <div class='error-message'>
+                        The selected time slot is not available on $formattedDate.<br>
+                        Reason: " . htmlspecialchars($blockedReason) . "
+                    </div>
+                    <a href='index.php' class='btn-back'>
+                        <i class='fas fa-arrow-left'></i> Select Another Time Slot
+                    </a>
+                </div>
+            </body>
+            </html>";
+            exit();
+        }
+        $blockedStmt->close();
     }
 }
 ?>

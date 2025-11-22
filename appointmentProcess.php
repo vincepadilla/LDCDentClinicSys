@@ -15,6 +15,283 @@ function generateID($prefix, $table, $column, $con) {
     return $prefix . str_pad($lastNum, 3, '0', STR_PAD_LEFT);
 }
 
+// Function to show success notification with check animation
+function showSuccessNotificationPage($title, $message, $appointmentId = '', $redirectUrl = '../login/account.php', $delay = 3000) {
+    $appointmentIdHtml = $appointmentId ? "<span class='appointment-id'>$appointmentId</span>" : '';
+    echo "<!DOCTYPE html>
+    <html lang='en'>
+    <head>
+        <meta charset='UTF-8'>
+        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        <title>Appointment Booked</title>
+        <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'>
+        <link rel='preconnect' href='https://fonts.googleapis.com'>
+        <link rel='preconnect' href='https://fonts.gstatic.com' crossorigin>
+        <link href='https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap' rel='stylesheet'>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            body {
+                font-family: 'Poppins', sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+                padding: 20px;
+                overflow: hidden;
+            }
+            .modal-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10000;
+                animation: fadeIn 0.3s ease-out;
+                backdrop-filter: blur(4px);
+            }
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                }
+                to {
+                    opacity: 1;
+                }
+            }
+            .notification-container {
+                position: relative;
+                z-index: 10001;
+            }
+            .notification {
+                background: white;
+                border-radius: 20px;
+                padding: 40px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 25px;
+                min-width: 450px;
+                max-width: 550px;
+                text-align: center;
+                animation: modalPopIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+                border: none;
+                position: relative;
+            }
+            @keyframes modalPopIn {
+                0% {
+                    transform: scale(0.7) translateY(-50px);
+                    opacity: 0;
+                }
+                50% {
+                    transform: scale(1.05) translateY(0);
+                }
+                100% {
+                    transform: scale(1) translateY(0);
+                    opacity: 1;
+                }
+            }
+            .notification-icon {
+                width: 100px;
+                height: 100px;
+                border-radius: 50%;
+                background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                animation: successScale 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+                box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+                margin-bottom: 10px;
+            }
+            @keyframes successScale {
+                0% {
+                    transform: scale(0) rotate(-180deg);
+                    opacity: 0;
+                }
+                50% {
+                    transform: scale(1.15) rotate(10deg);
+                }
+                100% {
+                    transform: scale(1) rotate(0deg);
+                    opacity: 1;
+                }
+            }
+            @keyframes checkmark {
+                0% {
+                    stroke-dashoffset: 100;
+                    opacity: 0;
+                }
+                50% {
+                    opacity: 1;
+                }
+                100% {
+                    stroke-dashoffset: 0;
+                }
+            }
+            .check-animation {
+                stroke-dasharray: 100;
+                stroke-dashoffset: 100;
+                animation: checkmark 0.8s ease-out forwards;
+                animation-delay: 0.2s;
+            }
+            .notification-content {
+                flex: 1;
+                width: 100%;
+            }
+            .notification-title {
+                font-weight: 700;
+                font-size: 26px;
+                margin: 0 0 15px 0;
+                color: #111827;
+                line-height: 1.3;
+            }
+            .notification-message {
+                font-size: 16px;
+                color: #6B7280;
+                margin: 0 0 15px 0;
+                line-height: 1.7;
+            }
+            .appointment-id {
+                font-weight: 700;
+                color: #10B981;
+                font-size: 22px;
+                display: inline-block;
+                margin-top: 10px;
+                padding: 8px 16px;
+                background: rgba(16, 185, 129, 0.1);
+                border-radius: 8px;
+            }
+            .loading-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.6);
+                display: none;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+                backdrop-filter: blur(4px);
+            }
+            .loading-content {
+                background: white;
+                padding: 30px 40px;
+                border-radius: 12px;
+                text-align: center;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            }
+            .spinner {
+                border: 4px solid #f3f3f3;
+                border-top: 4px solid #10B981;
+                border-radius: 50%;
+                width: 50px;
+                height: 50px;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 15px;
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            .loading-text {
+                color: #6B7280;
+                font-size: 14px;
+                font-weight: 500;
+            }
+            @media (max-width: 600px) {
+                .notification {
+                    min-width: 90%;
+                    max-width: 90%;
+                    padding: 30px 20px;
+                }
+                .notification-icon {
+                    width: 80px;
+                    height: 80px;
+                }
+                .notification-title {
+                    font-size: 22px;
+                }
+                .notification-message {
+                    font-size: 14px;
+                }
+                .appointment-id {
+                    font-size: 18px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class='loading-overlay' id='loadingOverlay'>
+            <div class='loading-content'>
+                <div class='spinner'></div>
+                <div class='loading-text'>Redirecting...</div>
+            </div>
+        </div>
+        <script>
+            function showSuccessNotification(title, message, appointmentId) {
+                // Create modal overlay
+                const modalOverlay = document.createElement('div');
+                modalOverlay.className = 'modal-overlay';
+                
+                // Create notification container
+                const container = document.createElement('div');
+                container.className = 'notification-container';
+                
+                const notification = document.createElement('div');
+                notification.className = 'notification';
+                
+                const appointmentIdHtml = appointmentId ? 
+                    '<div style=\"margin-top: 15px;\">Your Appointment ID: <span class=\"appointment-id\">' + appointmentId + '</span></div>' : '';
+                
+                notification.innerHTML = `
+                    <div class='notification-icon'>
+                        <svg width='55' height='55' viewBox='0 0 24 24' fill='none' stroke='#10B981' stroke-width='3'>
+                            <path d='M5 13l4 4L19 7' class='check-animation' stroke-linecap='round' stroke-linejoin='round'/>
+                        </svg>
+                    </div>
+                    <div class='notification-content'>
+                        <div class='notification-title'>" . addslashes(htmlspecialchars($title)) . "</div>
+                        <div class='notification-message'>" . addslashes(htmlspecialchars($message)) . "</div>
+                        " . $appointmentIdHtml . "
+                    </div>
+                `;
+                
+                container.appendChild(notification);
+                modalOverlay.appendChild(container);
+                document.body.appendChild(modalOverlay);
+                
+                // Show loading overlay and redirect after delay
+                setTimeout(() => {
+                    modalOverlay.style.animation = 'fadeIn 0.3s ease-out reverse';
+                    setTimeout(() => {
+                        document.getElementById('loadingOverlay').style.display = 'flex';
+                        setTimeout(() => {
+                            window.location.href = '$redirectUrl';
+                        }, 500);
+                    }, 300);
+                }, $delay);
+            }
+            
+            // Show notification when page loads
+            window.addEventListener('DOMContentLoaded', function() {
+                showSuccessNotification(" . json_encode($title) . ", " . json_encode($message) . ", " . json_encode($appointmentId) . ");
+            });
+        </script>
+    </body>
+    </html>";
+    exit();
+}
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if (!isset($_SESSION['userID'])) {
@@ -125,6 +402,49 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         echo "<script>alert('Please upload payment proof image.');</script>";
         exit();
     }
+    
+    // Final safety check: Verify clinic closure status (validation should have been done in payment.php, but this is a security measure)
+    $clinicClosed = false;
+    $checkTable = "SHOW TABLES LIKE 'clinic_closures'";
+    $tableExists = mysqli_query($con, $checkTable);
+    
+    if ($tableExists && mysqli_num_rows($tableExists) > 0) {
+        $closureQuery = "SELECT closure_type, reason FROM clinic_closures WHERE closure_date = ? AND status = 'active' LIMIT 1";
+        $closureStmt = $con->prepare($closureQuery);
+        if ($closureStmt) {
+            $closureStmt->bind_param("s", $date);
+            $closureStmt->execute();
+            $closureResult = $closureStmt->get_result();
+            
+            if ($closureRow = $closureResult->fetch_assoc()) {
+                if ($closureRow['closure_type'] === 'full_day') {
+                    $clinicClosed = true;
+                }
+            }
+            $closureStmt->close();
+        }
+    }
+    
+    // Final safety check: Verify time slot is not blocked
+    $slotBlocked = false;
+    $blockedSlotQuery = "SELECT block_id FROM blocked_time_slots WHERE date = ? AND time_slot = ? LIMIT 1";
+    $blockedStmt = $con->prepare($blockedSlotQuery);
+    if ($blockedStmt) {
+        $blockedStmt->bind_param("ss", $date, $time_slot);
+        $blockedStmt->execute();
+        $blockedResult = $blockedStmt->get_result();
+        $slotBlocked = ($blockedResult->num_rows > 0);
+        $blockedStmt->close();
+    }
+    
+    // If validation fails (should not happen if payment.php validation worked, but safety check)
+    if ($clinicClosed || $slotBlocked) {
+        echo "<script>
+            alert('Appointment booking failed: The selected date or time slot is no longer available. Please select another appointment.');
+            window.location.href='index.php';
+        </script>";
+        exit();
+    }
 
     // === CHECK IF PATIENT EXISTS ===
     $userID_escaped_check = mysqli_real_escape_string($con, $userID);
@@ -225,16 +545,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 // For other appointments with cash: maintain 2-day deadline
                 if ($isTomorrow) {
                     $todayFormatted = $today->format('F j, Y');
-                    echo "<script>alert('Appointment Slot Reserved for Tomorrow! IMPORTANT: You must pay TODAY ($todayFormatted) at the branch, otherwise your reservation will be cancelled.');
-                    window.location.href='../login/account.php';</script>";
+                    showSuccessNotificationPage(
+                        'Appointment Slot Reserved for Tomorrow!',
+                        "IMPORTANT: You must pay TODAY ($todayFormatted) at the branch, otherwise your reservation will be cancelled.",
+                        $appointment_id,
+                        '../login/account.php',
+                        4000
+                    );
                 } else {
                     // Calculate deadline date (2 days before appointment)
                     $deadlineDate = clone $appointmentDate;
                     $deadlineDate->modify('-2 days');
                     $deadlineFormatted = $deadlineDate->format('F j, Y');
                     
-                    echo "<script>alert('Appointment Slot Reserved! Please pay at least 2 days before your appointment date ($date) at the branch.');
-                    window.location.href='../login/account.php';</script>";
+                    showSuccessNotificationPage(
+                        'Appointment Slot Reserved!',
+                        "Please pay at least 2 days before your appointment date ($date) at the branch. Deadline: $deadlineFormatted",
+                        $appointment_id,
+                        '../login/account.php',
+                        4000
+                    );
                 }
             } else {
                 error_log('Payment error: ' . mysqli_error($con));
@@ -271,8 +601,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     mysqli_query($con, $insertNotification);
                 }
                 
-                echo "<script>alert('Appointment Successfully Booked! Your Appointment ID: $appointment_id');
-                window.location.href='../login/account.php';</script>";
+                // Show success notification with check animation
+                showSuccessNotificationPage(
+                    'Appointment Successfully Booked!',
+                    'Your appointment has been confirmed and is pending payment verification.',
+                    $appointment_id,
+                    '../login/account.php',
+                    3000
+                );
             } else {
                 error_log('Payment error: ' . mysqli_error($con));
                 echo "<script>alert('Error saving payment. Try again.');

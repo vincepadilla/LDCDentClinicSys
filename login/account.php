@@ -25,51 +25,28 @@ $user_query->execute();
 $user_result = $user_query->get_result();
 $user = $user_result->fetch_assoc();
 
-// ✅ Fetch appointments (if patient exists)
-// Check if viewing all appointments or just recent ones
-$view_all = isset($_GET['view']) && $_GET['view'] == 'all';
+// ✅ Fetch most recent appointment (if patient exists)
 $recent_appointments = [];
 if (!empty($user['patient_id'])) {
-    if ($view_all) {
-        // Query for all appointments with payment information
-        $appt_query = $con->prepare("
-            SELECT a.appointment_id, a.appointment_date, a.appointment_time, 
-                   s.service_category, a.status, a.created_at,
-                   p.method as payment_method, p.status as payment_status
-            FROM appointments a
-            INNER JOIN services s ON a.service_id = s.service_id
-            LEFT JOIN payment p ON a.appointment_id = p.appointment_id
-            WHERE a.patient_id = ?
-            ORDER BY 
-                CASE 
-                    WHEN a.status IN ('Cancelled', 'Complete', 'Completed', 'No-show') THEN 1
-                    ELSE 0
-                END ASC,
-                a.created_at DESC,
-                a.appointment_date DESC, 
-                a.appointment_time DESC
-        ");
-    } else {
-        // Query for recent appointments (limit 5) with payment information
-        $appt_query = $con->prepare("
-            SELECT a.appointment_id, a.appointment_date, a.appointment_time, 
-                   s.service_category, a.status, a.created_at,
-                   p.method as payment_method, p.status as payment_status
-            FROM appointments a
-            INNER JOIN services s ON a.service_id = s.service_id
-            LEFT JOIN payment p ON a.appointment_id = p.appointment_id
-            WHERE a.patient_id = ?
-            ORDER BY 
-                CASE 
-                    WHEN a.status IN ('Cancelled', 'Complete', 'Completed', 'No-show') THEN 1
-                    ELSE 0
-                END ASC,
-                a.created_at DESC,
-                a.appointment_date DESC, 
-                a.appointment_time DESC
-            LIMIT 5
-        ");
-    }
+    // Query for the most recent appointment with payment information
+    $appt_query = $con->prepare("
+        SELECT a.appointment_id, a.appointment_date, a.appointment_time, 
+               s.service_category, a.status, a.created_at,
+               p.method as payment_method, p.status as payment_status
+        FROM appointments a
+        INNER JOIN services s ON a.service_id = s.service_id
+        LEFT JOIN payment p ON a.appointment_id = p.appointment_id
+        WHERE a.patient_id = ?
+        ORDER BY 
+            CASE 
+                WHEN a.status IN ('Cancelled', 'Complete', 'Completed', 'No-show') THEN 1
+                ELSE 0
+            END ASC,
+            a.created_at DESC,
+            a.appointment_date DESC, 
+            a.appointment_time DESC
+        LIMIT 1
+    ");
     $appt_query->bind_param("s", $user['patient_id']);
     $appt_query->execute();
     $appt_result = $appt_query->get_result();
@@ -94,8 +71,306 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
     <title>Your Account</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="accountstyle.css">
+    <style>
+        /* Notification System Styles */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 400px;
+        }
+
+        .notification {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            min-width: 320px;
+            animation: slideInRight 0.4s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .notification.success {
+            border-left: 4px solid #10B981;
+        }
+
+        .notification.warning {
+            border-left: 4px solid #F59E0B;
+        }
+
+        .notification.error {
+            border-left: 4px solid #EF4444;
+        }
+
+        .notification.info {
+            border-left: 4px solid #3B82F6;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .notification.hide {
+            animation: slideOutRight 0.3s ease-out forwards;
+        }
+
+        .notification-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .notification.success .notification-icon {
+            background: #D1FAE5;
+            color: #10B981;
+        }
+
+        .notification.warning .notification-icon {
+            background: #FEF3C7;
+            color: #F59E0B;
+        }
+
+        .notification.error .notification-icon {
+            background: #FEE2E2;
+            color: #EF4444;
+        }
+
+        .notification.info .notification-icon {
+            background: #DBEAFE;
+            color: #3B82F6;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin: 0 0 4px 0;
+            color: #111827;
+        }
+
+        .notification-message {
+            font-size: 14px;
+            color: #6B7280;
+            margin: 0;
+        }
+
+        .notification-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: transparent;
+            border: none;
+            font-size: 20px;
+            color: #9CA3AF;
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .notification-close:hover {
+            background: #F3F4F6;
+            color: #374151;
+        }
+
+        /* Check Animation */
+        @keyframes checkmark {
+            0% {
+                stroke-dashoffset: 100;
+            }
+            100% {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        .check-animation {
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            animation: checkmark 0.6s ease-out forwards;
+        }
+
+        /* Success Scale Animation */
+        @keyframes successScale {
+            0% {
+                transform: scale(0);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .success-scale-animation {
+            animation: successScale 0.5s ease-out;
+        }
+
+        /* Confirmation Modal */
+        .confirmation-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10001;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .confirmation-modal.show {
+            display: flex;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .confirmation-content {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalPopIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes modalPopIn {
+            0% {
+                transform: scale(0.8) translateY(-20px);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .confirmation-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 40px;
+            animation: successScale 0.5s ease-out;
+        }
+
+        .confirmation-title {
+            font-size: 24px;
+            font-weight: 700;
+            text-align: center;
+            margin: 0 0 15px 0;
+            color: #111827;
+        }
+
+        .confirmation-message {
+            font-size: 16px;
+            text-align: center;
+            color: #6B7280;
+            margin: 0 0 30px 0;
+            line-height: 1.6;
+        }
+
+        .confirmation-actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .confirmation-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .confirmation-btn-cancel {
+            background: #F3F4F6;
+            color: #374151;
+        }
+
+        .confirmation-btn-cancel:hover {
+            background: #E5E7EB;
+        }
+
+        .confirmation-btn-confirm {
+            background: #EF4444;
+            color: white;
+        }
+
+        .confirmation-btn-confirm:hover {
+            background: #DC2626;
+        }
+    </style>
 </head>
 <body>
+
+<!-- Notification Container -->
+<div class="notification-container" id="notificationContainer"></div>
+
+<!-- Confirmation Modal -->
+<div id="confirmationModal" class="confirmation-modal">
+    <div class="confirmation-content">
+        <div class="confirmation-icon">⚠️</div>
+        <h3 class="confirmation-title" id="confirmationTitle">Confirm Action</h3>
+        <p class="confirmation-message" id="confirmationMessage">Are you sure you want to proceed?</p>
+        <div class="confirmation-actions">
+            <button class="confirmation-btn confirmation-btn-cancel" onclick="closeConfirmationModal()">Cancel</button>
+            <button class="confirmation-btn confirmation-btn-confirm" id="confirmActionBtn">Confirm</button>
+        </div>
+    </div>
+</div>
 
 <div class="account-container">
     <!-- Welcome Section -->
@@ -143,17 +418,10 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
                 <h2 class="card-title">Quick Actions</h2>
                 
                 <div class="action-list">
-                    <?php if ($view_all): ?>
-                        <a href="account.php" class="action-item">
-                            <span class="action-icon">📋</span>
-                            <span class="action-text">View Recent Appointments</span>
-                        </a>
-                    <?php else: ?>
-                        <a href="account.php?view=all" class="action-item">
-                            <span class="action-icon">📋</span>
-                            <span class="action-text">View All Appointments</span>
-                        </a>
-                    <?php endif; ?>
+                    <a href="allAppointments.php" class="action-item">
+                        <span class="action-icon">📋</span>
+                        <span class="action-text">View All Appointments</span>
+                    </a>
                     <a href="#edit-credentials" class="action-item" onclick="openCredentialsModal()">
                         <span class="action-icon">🔐</span>
                         <span class="action-text">Change Password</span>
@@ -169,8 +437,8 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
         <!-- Right Column - Recent Appointments -->
         <div class="right-column">
             <div class="card">
-                <h2 class="card-title"><?= $view_all ? 'All Your Appointments' : 'Your Recent Appointments'; ?></h2>
-                <p class="card-subtitle"><?= $view_all ? 'View and manage all your appointments' : 'View and manage your upcoming visits'; ?></p>
+                <h2 class="card-title">Your Recent Appointment</h2>
+                <p class="card-subtitle">View and manage your most recent appointment</p>
 
                 <?php if (!empty($recent_appointments)): ?>
                     <?php foreach ($recent_appointments as $recent_appointment): ?>
@@ -289,11 +557,12 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
                                     Print Receipt
                                 </a>
 
-                                <a href="cancelAppointment.php?id=<?= $recent_appointment['appointment_id']; ?>" 
+                                <button type="button" 
                                    class="btn btn-danger <?= $buttonsDisabled ? 'disabled' : ''; ?>"
-                                   <?= $buttonsDisabled ? 'onclick="return false;" style="opacity: 0.5; cursor: not-allowed;"' : "onclick=\"return confirm('Are you sure you want to cancel?');\""; ?>>
+                                   data-appointment-id="<?= htmlspecialchars($recent_appointment['appointment_id']); ?>"
+                                   <?= $buttonsDisabled ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : 'onclick="showCancelConfirmation(this)"'; ?>>
                                     Cancel
-                                </a>
+                                </button>
 
                                 <a href="reschedule.php?id=<?= $recent_appointment['appointment_id']; ?>" 
                                    class="btn btn-primary <?= $buttonsDisabled ? 'disabled' : ''; ?>"
@@ -306,9 +575,10 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
                 <?php else: ?>
                     <div class="no-appointment">
                         <div class="no-appointment-icon">📅</div>
-                        <h3>No Recent Appointments</h3>
+                        <h3>No Recent Appointment</h3>
                         <p>You don't have any appointments scheduled yet. Book your next dental visit to maintain your oral health.</p>
                         <a href="../index.php" class="btn btn-primary">Book an Appointment</a>
+                        <a href="allAppointments.php" class="btn btn-secondary" style="margin-top: 10px; display: inline-block;">View All Appointments</a>
                     </div>
                 <?php endif; ?>
             </div>
@@ -598,6 +868,163 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// ==================== NOTIFICATION SYSTEM ====================
+function showNotification(type, title, message, icon = null, duration = 5000) {
+    const container = document.getElementById('notificationContainer');
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    
+    // Default icons based on type
+    let iconHTML = '';
+    if (icon) {
+        iconHTML = icon;
+    } else {
+        switch(type) {
+            case 'success':
+                iconHTML = '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 13l4 4L19 7" class="check-animation" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+                break;
+            case 'warning':
+                iconHTML = '<i class="fas fa-exclamation-triangle"></i>';
+                break;
+            case 'error':
+                iconHTML = '<i class="fas fa-times-circle"></i>';
+                break;
+            case 'info':
+                iconHTML = '<i class="fas fa-info-circle"></i>';
+                break;
+        }
+    }
+    
+    notification.innerHTML = `
+        <div class="notification-icon ${type === 'success' ? 'success-scale-animation' : ''}">
+            ${iconHTML}
+        </div>
+        <div class="notification-content">
+            <div class="notification-title">${title}</div>
+            <div class="notification-message">${message}</div>
+        </div>
+        <button class="notification-close" onclick="closeNotification(this)">&times;</button>
+    `;
+    
+    container.appendChild(notification);
+    
+    // Auto remove after duration
+    setTimeout(() => {
+        closeNotification(notification.querySelector('.notification-close'));
+    }, duration);
+}
+
+function closeNotification(btn) {
+    const notification = btn.closest('.notification');
+    if (notification) {
+        notification.classList.add('hide');
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }
+}
+
+// Special notification for appointment cancellation
+function showCancelledNotification(appointmentId) {
+    const container = document.getElementById('notificationContainer');
+    const notification = document.createElement('div');
+    notification.className = 'notification success';
+    
+    notification.innerHTML = `
+        <div class="notification-icon success-scale-animation">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <path d="M5 13l4 4L19 7" class="check-animation" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="notification-content">
+            <div class="notification-title">Appointment Cancelled!</div>
+            <div class="notification-message">Appointment #${appointmentId} has been successfully cancelled.</div>
+        </div>
+        <button class="notification-close" onclick="closeNotification(this)">&times;</button>
+    `;
+    
+    container.appendChild(notification);
+    setTimeout(() => {
+        closeNotification(notification.querySelector('.notification-close'));
+    }, 5000);
+}
+// ==================== END NOTIFICATION SYSTEM ====================
+
+// ==================== CONFIRMATION MODAL ====================
+let pendingAction = null;
+
+function showCancelConfirmation(button) {
+    const appointmentId = button.getAttribute('data-appointment-id');
+    const modal = document.getElementById('confirmationModal');
+    const title = document.getElementById('confirmationTitle');
+    const message = document.getElementById('confirmationMessage');
+    const confirmBtn = document.getElementById('confirmActionBtn');
+    
+    title.textContent = 'Cancel Appointment';
+    message.textContent = `Are you sure you want to cancel Appointment #${appointmentId}? This action cannot be undone.`;
+    confirmBtn.textContent = 'Yes, Cancel';
+    confirmBtn.onclick = function() {
+        cancelAppointment(appointmentId);
+        closeConfirmationModal();
+    };
+    
+    modal.classList.add('show');
+}
+
+function closeConfirmationModal() {
+    const modal = document.getElementById('confirmationModal');
+    modal.classList.remove('show');
+    pendingAction = null;
+}
+
+// Close modal when clicking outside
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('confirmationModal');
+    if (event.target === modal) {
+        closeConfirmationModal();
+    }
+});
+// ==================== END CONFIRMATION MODAL ====================
+
+// ==================== CANCEL APPOINTMENT AJAX ====================
+function cancelAppointment(appointmentId) {
+    // Show loading state
+    showNotification('info', 'Processing...', 'Please wait while we cancel your appointment.', '<i class="fas fa-spinner fa-spin"></i>', 2000);
+    
+    fetch(`cancelAppointment.php?id=${appointmentId}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => {
+        // Check if response is HTML (redirect) or JSON
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+            return response.json();
+        } else {
+            // If it's HTML or redirect, assume success
+            return response.text().then(() => ({ success: true }));
+        }
+    })
+    .then(data => {
+        if (data.success || !data.error) {
+            showCancelledNotification(appointmentId);
+            // Reload page after 2 seconds to show updated appointment
+            setTimeout(() => {
+                location.reload();
+            }, 2000);
+        } else {
+            showNotification('error', 'Error', data.message || data.error || 'Failed to cancel appointment. Please try again.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('error', 'Error', 'An error occurred while cancelling the appointment. Please try again.');
+    });
+}
+// ==================== END CANCEL APPOINTMENT ====================
 
 </script>
 

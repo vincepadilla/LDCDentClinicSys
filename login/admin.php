@@ -37,8 +37,237 @@ $result = mysqli_query($con, $sql);
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="adminstyle.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        /* Notification System Styles */
+        .notification-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 400px;
+        }
+
+        .notification {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            min-width: 320px;
+            animation: slideInRight 0.4s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .notification.success {
+            border-left: 4px solid #10B981;
+        }
+
+        .notification.warning {
+            border-left: 4px solid #F59E0B;
+        }
+
+        .notification.error {
+            border-left: 4px solid #EF4444;
+        }
+
+        .notification.info {
+            border-left: 4px solid #3B82F6;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .notification.hide {
+            animation: slideOutRight 0.3s ease-out forwards;
+        }
+
+        .notification-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .notification.success .notification-icon {
+            background: #D1FAE5;
+            color: #10B981;
+        }
+
+        .notification.warning .notification-icon {
+            background: #FEF3C7;
+            color: #F59E0B;
+        }
+
+        .notification.error .notification-icon {
+            background: #FEE2E2;
+            color: #EF4444;
+        }
+
+        .notification.info .notification-icon {
+            background: #DBEAFE;
+            color: #3B82F6;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin: 0 0 4px 0;
+            color: #111827;
+        }
+
+        .notification-message {
+            font-size: 14px;
+            color: #6B7280;
+            margin: 0;
+        }
+
+        .notification-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: transparent;
+            border: none;
+            font-size: 20px;
+            color: #9CA3AF;
+            cursor: pointer;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .notification-close:hover {
+            background: #F3F4F6;
+            color: #374151;
+        }
+
+        /* Check Animation */
+        @keyframes checkmark {
+            0% {
+                stroke-dashoffset: 100;
+            }
+            100% {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        .check-animation {
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            animation: checkmark 0.6s ease-out forwards;
+        }
+
+        /* Calendar Animation */
+        @keyframes calendarPop {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+        }
+
+        .calendar-animation {
+            animation: calendarPop 0.5s ease-out;
+        }
+
+        /* Warning Pulse Animation */
+        @keyframes warningPulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        .warning-animation {
+            animation: warningPulse 0.8s ease-out 2;
+        }
+
+        /* Success Scale Animation */
+        @keyframes successScale {
+            0% {
+                transform: scale(0);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .success-scale-animation {
+            animation: successScale 0.5s ease-out;
+        }
+
+        /* Progress Bar */
+        .notification-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: #E5E7EB;
+            width: 100%;
+        }
+
+        .notification-progress-bar {
+            height: 100%;
+            background: currentColor;
+            animation: progressBar 5s linear forwards;
+        }
+
+        @keyframes progressBar {
+            from {
+                width: 100%;
+            }
+            to {
+                width: 0%;
+            }
+        }
+    </style>
 </head>
 <body>
+
+<!-- Notification Container -->
+<div class="notification-container" id="notificationContainer"></div>
 
 <div class="menu-toggle" onclick="toggleSidebar()">
     <i class="fas fa-bars"></i>
@@ -59,7 +288,46 @@ $result = mysqli_query($con, $sql);
         <a href="#payments" onclick="showSection('payment', this)"><i class="fa-solid fa-money-bill"></i> Transactions</a> 
         <a href="#reports" onclick="showSection('reports', this)"><i class="fa-solid fa-square-poll-vertical"></i> Reports</a> 
         <a href="login.php"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+        <div class="sidebar-divider"></div>
+        <button class="sidebar-btn-clinic-control" onclick="showControlsPopup()" title="Controls">
+            <i class="fas fa-cog"></i> <span>Controls</span>
+        </button>
     </nav>
+</div>
+
+<!-- Controls Popup Modal -->
+<div id="controlsPopupModal" class="modal" style="display:none; z-index: 10001;">
+    <div class="modal-content" style="max-width: 400px;">
+        <span class="close" onclick="closeControlsPopup()">&times;</span>
+        <h3 style="margin-top: 0; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-sliders-h"></i> Select Control
+        </h3>
+        <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 20px;">
+            <button class="control-option-btn" onclick="navigateToClinicControl()">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div class="control-icon" style="background: #f59e0b20; color: #f59e0b;">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <div style="text-align: left;">
+                        <div style="font-weight: 600; font-size: 16px;">Clinic Control</div>
+                        <div style="font-size: 13px; color: #6b7280; margin-top: 3px;">Manage closures & holidays</div>
+                    </div>
+                </div>
+            </button>
+            
+            <button class="control-option-btn" onclick="navigateToUserControl()">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div class="control-icon" style="background: #3b82f620; color: #3b82f6;">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div style="text-align: left;">
+                        <div style="font-weight: 600; font-size: 16px;">User Control</div>
+                        <div style="font-size: 13px; color: #6b7280; margin-top: 3px;">Manage users & accounts</div>
+                    </div>
+                </div>
+            </button>
+        </div>
+    </div>
 </div>
 
 <?php
@@ -290,14 +558,21 @@ $result = mysqli_query($con, $sql);
         
         <div class="filter-container">
             <div class="filter-group">
-                <label for="filter-date"><i class="fas fa-calendar-day"></i> Date:</label>
-                <input type="date" id="filter-date" onchange="filterAppointments()">
+                <label for="filter-date-category"><i class="fas fa-calendar-day"></i> Date Category:</label>
+                <select id="filter-date-category" onchange="handleDateCategoryChange()">
+                    <option value="">All Dates</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="custom">Custom Date</option>
+                </select>
+                <input type="date" id="filter-date" onchange="filterAppointments()" style="display:none; margin-left:10px;">
             </div>
             
             <div class="filter-group">
-                <label for="filter-status"><i class="fas fa-filter"></i> Status:</label>        
+                <label for="filter-status"><i class="fas fa-filter"></i> Status Category:</label>        
                 <select id="filter-status" onchange="filterAppointments()">
-                    <option value="">All</option>
+                    <option value="">All Status</option>
                     <option value="pending">Pending</option>
                     <option value="confirmed">Confirmed</option>
                     <option value="reschedule">Reschedule</option>
@@ -346,12 +621,11 @@ $result = mysqli_query($con, $sql);
                             <td><span class="status <?php echo $statusClass; ?>"><?php echo htmlspecialchars($row['status']); ?></span></td>
                             <td>
                                 <div class="action-btns">
-                                    <form action="confirmAppointment.php" method="POST" style="display:inline;">
-                                        <input type="hidden" name="appointment_id" value="<?php echo $row['appointment_id']; ?>">
-                                        <button type="submit" class="action-btn btn-primary-confirmed" title="Confirm">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                    </form>
+                                    <button type="button" class="action-btn btn-primary-confirmed" title="Confirm"
+                                        data-appointment-id="<?php echo $row['appointment_id']; ?>"
+                                        onclick="confirmAppointment(this)">
+                                        <i class="fas fa-check"></i>
+                                    </button>
 
                                     <a href="#" 
                                         class="action-btn btn-accent" 
@@ -370,12 +644,11 @@ $result = mysqli_query($con, $sql);
                                     </button>
                                     
 
-                                    <form action="noshowAppointment.php" method="POST" style="display:inline;">
-                                        <input type="hidden" name="appointment_id" value="<?php echo $row['appointment_id']; ?>">
-                                        <button class="action-btn btn-danger" title="No-Show">
-                                            <i class="fa-regular fa-eye-slash"></i>
-                                        </button>
-                                    </form>
+                                    <button type="button" class="action-btn btn-danger" title="No-Show"
+                                        data-appointment-id="<?php echo $row['appointment_id']; ?>"
+                                        onclick="markNoShow(this)">
+                                        <i class="fa-regular fa-eye-slash"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -404,7 +677,7 @@ $result = mysqli_query($con, $sql);
             <span class="complete-appointment-close">&times;</span>
         </div>
         <div class="complete-appointment-body">
-            <form id="treatmentForm" action="saveTreatment.php" method="post">
+            <form id="treatmentForm" onsubmit="handleTreatmentSubmit(event)">
                 <input type="hidden" id="treatment_patient_id" name="patient_id">
                 <input type="hidden" id="treatment_appointment_id" name="appointment_id">
 
@@ -568,7 +841,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 <div id="reschedModal" class="modal">
     <div class="modal-content">
         <h3>Reschedule Appointment</h3>
-        <form action="rescheduleAppointment.php" method="POST">
+        <form id="rescheduleForm" onsubmit="handleRescheduleSubmit(event)">
             <input type="hidden" id="modalAppointmentID" name="appointment_id">
             
             <label for="new_date">Select New Date:</label>
@@ -737,6 +1010,186 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             </div>
         </div>
     </div>
+</div>
+
+<!-- Block Entire Day Modal -->
+<div id="blockDayModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width: 600px;">
+        <span class="close" onclick="closeBlockDayModal()">&times;</span>
+        <h3><i class="fas fa-calendar-times"></i> Block Entire Day</h3>
+        <form id="blockDayForm" onsubmit="handleBlockDaySubmit(event)">
+            <div style="margin-bottom: 15px;">
+                <label for="blockDayDate"><strong>Select Date:</strong></label>
+                <input type="date" id="blockDayDate" name="closure_date" required min="<?= date('Y-m-d') ?>" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label><strong>Closure Type:</strong></label>
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                        <input type="radio" name="closure_type" value="full_day" checked>
+                        <span><i class="fas fa-ban" style="color: #dc3545;"></i> Full Day Closure (All appointments blocked)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                        <input type="radio" name="closure_type" value="no_new_appointments">
+                        <span><i class="fas fa-exclamation-circle" style="color: #ffc107;"></i> No New Appointments (Existing appointments remain)</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label for="blockDayReason"><strong>Reason:</strong></label>
+                <select id="blockDayReason" name="reason" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px; margin-top: 5px;">
+                    <option value="">Select Reason</option>
+                    <option value="Holiday">Holiday</option>
+                    <option value="Maintenance">Maintenance</option>
+                    <option value="Staff Training">Staff Training</option>
+                    <option value="Emergency">Emergency</option>
+                    <option value="Weather">Weather Conditions</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            
+            <div id="blockDayCustomReasonContainer" style="margin-bottom: 15px; display: none;">
+                <label for="blockDayCustomReason"><strong>Custom Reason (if Other):</strong></label>
+                <textarea id="blockDayCustomReason" name="custom_reason" rows="3" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; margin-top: 5px;" placeholder="Enter custom reason..."></textarea>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="notifyPatients" name="notify_patients" checked>
+                    <span>Notify patients with appointments on this date</span>
+                </label>
+            </div>
+            
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" onclick="closeBlockDayModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger">Block Day</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Holiday Management Modal -->
+<div id="holidayModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width: 700px;">
+        <span class="close" onclick="closeHolidayModal()">&times;</span>
+        <h3><i class="fas fa-calendar-star"></i> Manage Holidays</h3>
+        <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+            <button class="btn btn-primary" onclick="showAddHolidayForm()">
+                <i class="fas fa-plus"></i> Add Holiday
+            </button>
+        </div>
+        
+        <!-- Add Holiday Form -->
+        <div id="addHolidayForm" style="display:none; background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h4>Add New Holiday</h4>
+            <form id="holidayForm" onsubmit="handleHolidaySubmit(event)">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label for="holidayName"><strong>Holiday Name:</strong></label>
+                        <input type="text" id="holidayName" name="holiday_name" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                    </div>
+                    <div>
+                        <label for="holidayDate"><strong>Date:</strong></label>
+                        <input type="date" id="holidayDate" name="holiday_date" required min="<?= date('Y-m-d') ?>" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label><strong>Recurrence:</strong></label>
+                    <div style="display: flex; gap: 15px; margin-top: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="radio" name="recurrence" value="once" checked>
+                            <span>One Time</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="radio" name="recurrence" value="yearly">
+                            <span>Yearly (Recurring)</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                    <button type="button" class="btn btn-secondary" onclick="hideAddHolidayForm()">Cancel</button>
+                    <button type="submit" class="btn btn-success">Add Holiday</button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Holidays List -->
+        <div id="holidaysList">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                        <th style="padding: 12px; text-align: left;">Holiday Name</th>
+                        <th style="padding: 12px; text-align: left;">Date</th>
+                        <th style="padding: 12px; text-align: left;">Recurrence</th>
+                        <th style="padding: 12px; text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="holidaysTableBody">
+                    <!-- Holidays will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Emergency Closure Modal -->
+<div id="emergencyClosureModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width: 600px;">
+        <span class="close" onclick="closeEmergencyClosureModal()">&times;</span>
+        <h3><i class="fas fa-exclamation-triangle" style="color: #dc3545;"></i> Emergency Closure</h3>
+        <form id="emergencyClosureForm" onsubmit="handleEmergencyClosureSubmit(event)">
+            <div style="margin-bottom: 15px;">
+                <label><strong>Closure Duration:</strong></label>
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                        <input type="radio" name="closure_duration" value="single_day" checked>
+                        <span>Single Day</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+                        <input type="radio" name="closure_duration" value="date_range">
+                        <span>Date Range</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label for="emergencyStartDate"><strong>Start Date:</strong></label>
+                <input type="date" id="emergencyStartDate" name="start_date" required min="<?= date('Y-m-d') ?>" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
+            </div>
+            
+            <div style="margin-bottom: 15px;" id="emergencyEndDateContainer" style="display:none;">
+                <label for="emergencyEndDate"><strong>End Date:</strong></label>
+                <input type="date" id="emergencyEndDate" name="end_date" min="<?= date('Y-m-d') ?>" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 16px;">
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label for="emergencyReason"><strong>Emergency Reason:</strong></label>
+                <textarea id="emergencyReason" name="reason" rows="4" required style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; margin-top: 5px;" placeholder="Describe the emergency situation..."></textarea>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="emergencyNotifyPatients" name="notify_patients" checked>
+                    <span>Notify all affected patients immediately</span>
+                </label>
+            </div>
+            
+            <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 15px; margin-bottom: 15px;">
+                <strong style="color: #856404;">⚠️ Warning:</strong>
+                <p style="color: #856404; margin: 5px 0 0 0;">This will automatically cancel all appointments during the closure period. Affected patients will be notified.</p>
+            </div>
+            
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                <button type="button" class="btn btn-secondary" onclick="closeEmergencyClosureModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger">Confirm Emergency Closure</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 </div>
 
@@ -744,12 +1197,38 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 <div id="services" class="main-content" style="display:none;">
     <div class="container">
         <h2><i class="fas fa-procedures"></i> SERVICES</h2>
-        <button class="btn btn-primary" id="openAddServiceBtn">ADD NEW SERVICE</button>
 
         <?php
-            $servicesSql = "SELECT service_id, service_category, sub_service, description, price FROM services";
+            // Get unique service categories for filter
+            $categoriesQuery = "SELECT DISTINCT service_category FROM services WHERE service_category IS NOT NULL AND service_category != '' ORDER BY service_category";
+            $categoriesResult = mysqli_query($con, $categoriesQuery);
+            $serviceCategories = [];
+            while ($categoryRow = mysqli_fetch_assoc($categoriesResult)) {
+                $serviceCategories[] = $categoryRow['service_category'];
+            }
+            
+            // Get all services
+            $servicesSql = "SELECT service_id, service_category, sub_service, description, price FROM services ORDER BY service_category, service_id";
             $servicesResult = mysqli_query($con, $servicesSql);
         ?>
+
+        <div class="filter-container">
+            <div class="filter-group">
+                <label for="filter-service-category"><i class="fas fa-filter"></i> Category:</label>
+                <select id="filter-service-category" onchange="filterServices()">
+                    <option value="">All Categories</option>
+                    <?php foreach ($serviceCategories as $category): ?>
+                        <option value="<?php echo htmlspecialchars(strtolower($category)); ?>"><?php echo htmlspecialchars($category); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            
+            <button class="btn btn-primary" id="openAddServiceBtn">ADD NEW SERVICE</button>
+            
+            <button class="btn btn-accent" onclick="printServices()">
+                <i class="fas fa-print"></i> Print
+            </button>
+        </div>
 
         <div class="table-responsive">
             <table id="services-table">
@@ -768,7 +1247,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                     if(mysqli_num_rows($servicesResult) > 0) {
                         while ($row = mysqli_fetch_assoc($servicesResult)) { 
                     ?>
-                        <tr>
+                        <tr class="service-row" data-category="<?php echo htmlspecialchars(strtolower($row['service_category'])); ?>">
                             <td><?php echo htmlspecialchars($row['service_id']); ?></td>
                             <td><?php echo htmlspecialchars($row['service_category']); ?></td>
                             <td><?php echo htmlspecialchars($row['sub_service']); ?></td>
@@ -880,9 +1359,48 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 
         <?php
             $patientSql = "SELECT patient_id, first_name, last_name, birthdate, gender, email, phone, address 
-                          FROM patient_information";
+                          FROM patient_information
+                          ORDER BY patient_id ASC";
             $patientResult = mysqli_query($con, $patientSql);
         ?>
+
+        <div class="filter-container">
+            <div class="filter-group">
+                <label for="filter-patient-gender"><i class="fas fa-venus-mars"></i> Gender:</label>
+                <select id="filter-patient-gender" onchange="filterPatients()">
+                    <option value="">All Gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="filter-patient-age"><i class="fas fa-calendar-alt"></i> Age Category:</label>
+                <select id="filter-patient-age" onchange="filterPatients()">
+                    <option value="">All Ages</option>
+                    <option value="child">Child (0-12)</option>
+                    <option value="teen">Teen (13-19)</option>
+                    <option value="adult">Adult (20-59)</option>
+                    <option value="senior">Senior (60+)</option>
+                </select>
+            </div>
+            
+            <div class="filter-group search-group">
+                <label for="filter-patient-search"><i class="fas fa-search"></i> Search:</label>
+                <div class="search-input-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="filter-patient-search" class="search-input" 
+                           placeholder="Search by name, ID, email..." onkeyup="filterPatients()">
+                    <button type="button" class="search-clear-btn" id="clear-search-btn" onclick="clearPatientSearch()" style="display:none;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <button class="btn btn-accent" onclick="printPatients()">
+                <i class="fas fa-print"></i> Print
+            </button>
+        </div>
 
         <div class="table-responsive">
             <table id="patients-table">
@@ -906,8 +1424,28 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                             $birthdate = new DateTime($row['birthdate']);
                             $today = new DateTime();
                             $age = $birthdate->diff($today)->y;
+                            
+                            // Determine age category
+                            $ageCategory = '';
+                            if ($age <= 12) {
+                                $ageCategory = 'child';
+                            } else if ($age >= 13 && $age <= 19) {
+                                $ageCategory = 'teen';
+                            } else if ($age >= 20 && $age <= 59) {
+                                $ageCategory = 'adult';
+                            } else {
+                                $ageCategory = 'senior';
+                            }
+                            
+                            // Full name for search
+                            $fullName = strtolower($row['first_name'] . ' ' . $row['last_name']);
+                            $searchText = strtolower($row['patient_id'] . ' ' . $fullName . ' ' . $row['email']);
                     ?>
-                        <tr>
+                        <tr class="patient-row" 
+                            data-gender="<?php echo htmlspecialchars(strtolower($row['gender'])); ?>"
+                            data-age-category="<?php echo htmlspecialchars($ageCategory); ?>"
+                            data-search="<?php echo htmlspecialchars($searchText); ?>"
+                            data-age="<?php echo $age; ?>">
                             <td><?php echo htmlspecialchars($row['patient_id']); ?></td>
                             <td><?php echo htmlspecialchars($row['first_name'] . " " . $row['last_name']); ?></td>
                             <td><?php echo date('M j, Y', strtotime($row['birthdate'])); ?></td>
@@ -954,7 +1492,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 <div id="editPatientModal" class="modal" style="display:none;">
     <div class="modal-content">
         <h3>EDIT PATIENT</h3>
-        <form id="editPatientForm" method="POST" action="updatePatient.php">
+        <form id="editPatientForm" onsubmit="handleEditPatientSubmit(event)">
             <input type="hidden" name="patient_id" id="editPatientId">
 
             <div style="display: flex; gap: 10px;">
@@ -1297,11 +1835,58 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         <?php
             $paymentSql = "SELECT p.payment_id, p.appointment_id, p.method, p.account_name, 
                                   p.account_number, p.amount, p.reference_no, p.proof_image, p.status,
-                                  a.patient_id
+                                  a.patient_id, a.appointment_date
                            FROM payment p
-                           LEFT JOIN appointments a ON p.appointment_id = a.appointment_id";
+                           LEFT JOIN appointments a ON p.appointment_id = a.appointment_id
+                           ORDER BY a.appointment_date DESC, p.payment_id DESC";
             $paymentResult = mysqli_query($con, $paymentSql);
+            
+            // Get unique payment methods for filter
+            $methodsQuery = "SELECT DISTINCT method FROM payment WHERE method IS NOT NULL AND method != '' ORDER BY method";
+            $methodsResult = mysqli_query($con, $methodsQuery);
+            $paymentMethods = [];
+            while ($methodRow = mysqli_fetch_assoc($methodsResult)) {
+                $paymentMethods[] = $methodRow['method'];
+            }
         ?>
+
+        <div class="filter-container">
+            <div class="filter-group">
+                <label for="filter-payment-date-category"><i class="fas fa-calendar-day"></i> Date Category:</label>
+                <select id="filter-payment-date-category" onchange="handlePaymentDateCategoryChange()">
+                    <option value="">All Dates</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="custom">Custom Date</option>
+                </select>
+                <input type="date" id="filter-payment-date" onchange="filterPayments()" style="display:none; margin-left:10px;">
+            </div>
+            
+            <div class="filter-group">
+                <label for="filter-payment-status"><i class="fas fa-filter"></i> Status Category:</label>
+                <select id="filter-payment-status" onchange="filterPayments()">
+                    <option value="">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="paid">Paid</option>
+                    <option value="failed">Failed</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="filter-payment-method"><i class="fas fa-credit-card"></i> Payment Method:</label>
+                <select id="filter-payment-method" onchange="filterPayments()">
+                    <option value="">All Methods</option>
+                    <?php foreach ($paymentMethods as $method): ?>
+                        <option value="<?php echo htmlspecialchars(strtolower($method)); ?>"><?php echo htmlspecialchars($method); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            
+            <button class="btn btn-accent" onclick="printPayments()">
+                <i class="fas fa-print"></i> Print
+            </button>
+        </div>
 
         <div class="table-responsive">
             <table id="payment-table">
@@ -1323,8 +1908,14 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                     <?php 
                     if(mysqli_num_rows($paymentResult) > 0) {
                         while ($row = mysqli_fetch_assoc($paymentResult)) { 
+                            $appointmentDate = $row['appointment_date'] ?? '';
+                            $paymentStatus = strtolower($row['status'] ?? '');
+                            $paymentMethod = strtolower($row['method'] ?? '');
                     ?>
-                        <tr>
+                        <tr class="payment-row" 
+                            data-date="<?php echo htmlspecialchars($appointmentDate); ?>" 
+                            data-status="<?php echo htmlspecialchars($paymentStatus); ?>"
+                            data-method="<?php echo htmlspecialchars($paymentMethod); ?>">
                             <td><?php echo htmlspecialchars($row['payment_id']); ?></td>
                             <td><?php echo htmlspecialchars($row['appointment_id']); ?></td>
                             <td><?php echo htmlspecialchars($row['method']); ?></td>
@@ -1347,22 +1938,25 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                                     <span>No Image</span>
                                 <?php endif; ?>
                             </td>
-                            <td><?php echo htmlspecialchars($row['status']); ?></td>
+                            <td>
+                                <span class="status status-<?php echo htmlspecialchars(strtolower($paymentStatus)); ?>">
+                                    <?php echo htmlspecialchars($row['status']); ?>
+                                </span>
+                            </td>
                             <td>
                                 <div class="action-btns">
-                                    <form action="confirmPayment.php" method="POST" style="display:inline;">
-                                        <input type="hidden" name="payment_id" value="<?php echo $row['payment_id']; ?>">
-                                        <button type="submit" class="action-btn btn-primary-confirmedPayment" title="Confirm">
-                                            <i class="fas fa-check"></i>
-                                        </button>
-                                    </form>
+                                    <button type="button" class="action-btn btn-primary-confirmedPayment" title="Confirm"
+                                        data-payment-id="<?php echo $row['payment_id']; ?>"
+                                        data-payment-amount="<?php echo htmlspecialchars($row['amount']); ?>"
+                                        onclick="confirmPayment(this)">
+                                        <i class="fas fa-check"></i>
+                                    </button>
 
-                                    <form action="failedPayment.php" method="POST" style="display:inline;">
-                                        <input type="hidden" name="payment_id" value="<?php echo $row['payment_id']; ?>">
-                                        <button type="submit" class="action-btn btn-danger" title="Mark as failed">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </form>
+                                    <button type="button" class="action-btn btn-danger" title="Mark as failed"
+                                        data-payment-id="<?php echo $row['payment_id']; ?>"
+                                        onclick="markPaymentFailed(this)">
+                                        <i class="fas fa-times"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -1663,45 +2257,50 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                 $treatmentCounts[] = (int)$row['treatment_count'];
                 $totalRevenue += $row['total_revenue'];
             }
-            
-            // If no data found, show sample data based on treatment_history
-            if (empty($serviceNames)) {
-                $serviceNames = ['Braces Adjustment', 'Tooth Filling', 'Dental Cleaning', 'Tooth Extraction', 'Oral Check-up'];
-                $serviceRevenues = [3500, 2800, 1500, 1200, 800];
-                $treatmentCounts = [12, 8, 15, 6, 20];
-                $totalRevenue = array_sum($serviceRevenues);
-            }
             ?>
 
-            <!-- Revenue Chart and Details -->
-            <div class="revenue-content">
-                <div class="chart-container">
-                    <div class="chart-box">
-                        <canvas id="revenueByServicesChart"></canvas>
+            <?php if (!empty($serviceNames)): ?>
+                <!-- Revenue Chart and Details -->
+                <div class="revenue-content">
+                    <div class="chart-container">
+                        <div class="chart-box">
+                            <canvas id="revenueByServicesChart"></canvas>
+                        </div>
                     </div>
-                </div>
-                
-                <!-- Service Details -->
-                <div class="service-details">
-                    <h4>Service Revenue Details</h4>
-                    <div class="service-list">
-                        <?php foreach ($serviceNames as $index => $service): ?>
-                        <div class="service-item">
-                            <div class="service-info">
-                                <div class="service-name"><?php echo htmlspecialchars($service); ?></div>
-                                <div class="service-stats">
-                                    <span class="treatment-count"><?php echo $treatmentCounts[$index]; ?> treatments</span>
-                                    <span class="service-revenue">₱<?php echo number_format($serviceRevenues[$index], 2); ?></span>
+                    
+                    <!-- Service Details -->
+                    <div class="service-details">
+                        <h4>Service Revenue Details</h4>
+                        <div class="service-list">
+                            <?php foreach ($serviceNames as $index => $service): ?>
+                            <div class="service-item">
+                                <div class="service-info">
+                                    <div class="service-name"><?php echo htmlspecialchars($service); ?></div>
+                                    <div class="service-stats">
+                                        <span class="treatment-count"><?php echo $treatmentCounts[$index]; ?> treatments</span>
+                                        <span class="service-revenue">₱<?php echo number_format($serviceRevenues[$index], 2); ?></span>
+                                    </div>
+                                </div>
+                                <div class="revenue-percentage">
+                                    <?php echo $totalRevenue > 0 ? round(($serviceRevenues[$index] / $totalRevenue) * 100, 1) : 0; ?>%
                                 </div>
                             </div>
-                            <div class="revenue-percentage">
-                                <?php echo $totalRevenue > 0 ? round(($serviceRevenues[$index] / $totalRevenue) * 100, 1) : 0; ?>%
-                            </div>
+                            <?php endforeach; ?>
                         </div>
-                        <?php endforeach; ?>
                     </div>
                 </div>
-            </div>
+            <?php else: ?>
+                <!-- No Data Message -->
+                <div class="no-data-message" style="text-align: center; padding: 60px 20px; background: #f8f9fa; border-radius: 12px; margin-top: 20px;">
+                    <div style="font-size: 64px; color: #dee2e6; margin-bottom: 20px;">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <h3 style="color: #6c757d; margin-bottom: 10px; font-size: 24px;">No Revenue Data Available</h3>
+                    <p style="color: #868e96; font-size: 16px; max-width: 500px; margin: 0 auto;">
+                        Revenue data will appear here once treatments are completed and recorded in the system.
+                    </p>
+                </div>
+            <?php endif; ?>
         </div>
 
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1787,21 +2386,23 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                 });
 
                 // Revenue by Services Chart - Clean Pie Chart Version
-                const revenueByServicesCtx = document.getElementById('revenueByServicesChart').getContext('2d');
-                revenueByServicesChart = new Chart(revenueByServicesCtx, {
-                    type: 'pie',
-                    data: {
-                        labels: <?php echo json_encode($serviceNames); ?>,
-                        datasets: [{
-                            data: <?php echo json_encode($serviceRevenues); ?>,
-                            backgroundColor: [
-                                '#4F46E5', '#22C55E', '#F59E0B', '#EF4444', '#06B6D4',
-                                '#8B5CF6', '#84CC16', '#EC4899', '#F97316', '#0EA5E9'
-                            ],
-                            borderWidth: 2,
-                            borderColor: '#ffffff'
-                        }]
-                    },
+                <?php if (!empty($serviceNames)): ?>
+                const revenueByServicesCtx = document.getElementById('revenueByServicesChart');
+                if (revenueByServicesCtx) {
+                    revenueByServicesChart = new Chart(revenueByServicesCtx.getContext('2d'), {
+                        type: 'pie',
+                        data: {
+                            labels: <?php echo json_encode($serviceNames); ?>,
+                            datasets: [{
+                                data: <?php echo json_encode($serviceRevenues); ?>,
+                                backgroundColor: [
+                                    '#4F46E5', '#22C55E', '#F59E0B', '#EF4444', '#06B6D4',
+                                    '#8B5CF6', '#84CC16', '#EC4899', '#F97316', '#0EA5E9'
+                                ],
+                                borderWidth: 2,
+                                borderColor: '#ffffff'
+                            }]
+                        },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
@@ -1854,7 +2455,9 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                         },
                         cutout: '0%'
                     }
-                });
+                    });
+                }
+                <?php endif; ?>
 
                 // Services Availed Count Bar Chart
                 const availedCtx = document.getElementById('servicesAvailedChart').getContext('2d');
@@ -1920,63 +2523,68 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                 });
 
                 // Revenue by Services Chart
-                revenueByServicesCtx = document.getElementById('revenueByServicesChart').getContext('2d');
-                revenueByServicesChart = new Chart(revenueByServicesCtx, {
-                    type: 'pie',
-                    data: {
-                        labels: <?php echo json_encode($serviceNames); ?>,
-                        datasets: [{
-                            label: 'Revenue (₱)',
-                            data: <?php echo json_encode($serviceRevenues); ?>,
-                            backgroundColor: [
-                                '#4F46E5', '#22C55E', '#F59E0B', '#EF4444', '#06B6D4',
-                                '#8B5CF6', '#84CC16', '#EC4899', '#F97316', '#0EA5E9'
-                            ],
-                            borderRadius: 6,
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: false
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        return `₱${context.parsed.y.toLocaleString()}`;
-                                    }
-                                }
-                            }
+                <?php if (!empty($serviceNames)): ?>
+                const revenueByServicesElement = document.getElementById('revenueByServicesChart');
+                if (revenueByServicesElement) {
+                    revenueByServicesCtx = revenueByServicesElement.getContext('2d');
+                    revenueByServicesChart = new Chart(revenueByServicesCtx, {
+                        type: 'pie',
+                        data: {
+                            labels: <?php echo json_encode($serviceNames); ?>,
+                            datasets: [{
+                                label: 'Revenue (₱)',
+                                data: <?php echo json_encode($serviceRevenues); ?>,
+                                backgroundColor: [
+                                    '#4F46E5', '#22C55E', '#F59E0B', '#EF4444', '#06B6D4',
+                                    '#8B5CF6', '#84CC16', '#EC4899', '#F97316', '#0EA5E9'
+                                ],
+                                borderRadius: 6,
+                                borderWidth: 0
+                            }]
                         },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: 'Revenue (₱)'
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    display: false
                                 },
-                                ticks: {
-                                    callback: function(value) {
-                                        return '₱' + value.toLocaleString();
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `₱${context.parsed.y.toLocaleString()}`;
+                                        }
                                     }
                                 }
                             },
-                            x: {
-                                title: {
-                                    display: true,
-                                    text: 'Services'
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'Revenue (₱)'
+                                    },
+                                    ticks: {
+                                        callback: function(value) {
+                                            return '₱' + value.toLocaleString();
+                                        }
+                                    }
                                 },
-                                ticks: {
-                                    maxRotation: 45,
-                                    minRotation: 45
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Services'
+                                    },
+                                    ticks: {
+                                        maxRotation: 45,
+                                        minRotation: 45
+                                    }
                                 }
                             }
                         }
-                    }
-                });
+                    });
+                }
+                <?php endif; ?>
             }
 
             function updateChart() {
@@ -2491,6 +3099,599 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 
 
 <script>
+    // ==================== NOTIFICATION SYSTEM ====================
+    function showNotification(type, title, message, icon = null, duration = 5000) {
+        const container = document.getElementById('notificationContainer');
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        
+        // Default icons based on type
+        let iconHTML = '';
+        if (icon) {
+            iconHTML = icon;
+        } else {
+            switch(type) {
+                case 'success':
+                    iconHTML = '<i class="fas fa-check"></i>';
+                    break;
+                case 'warning':
+                    iconHTML = '<i class="fas fa-exclamation-triangle"></i>';
+                    break;
+                case 'error':
+                    iconHTML = '<i class="fas fa-times-circle"></i>';
+                    break;
+                case 'info':
+                    iconHTML = '<i class="fas fa-info-circle"></i>';
+                    break;
+            }
+        }
+        
+        notification.innerHTML = `
+            <div class="notification-icon ${type === 'success' ? 'success-scale-animation' : ''} ${type === 'warning' ? 'warning-animation' : ''} ${type === 'info' ? 'calendar-animation' : ''}">
+                ${iconHTML}
+            </div>
+            <div class="notification-content">
+                <div class="notification-title">${title}</div>
+                <div class="notification-message">${message}</div>
+            </div>
+            <button class="notification-close" onclick="closeNotification(this)">&times;</button>
+            <div class="notification-progress">
+                <div class="notification-progress-bar" style="color: ${getNotificationColor(type)}"></div>
+            </div>
+        `;
+        
+        container.appendChild(notification);
+        
+        // Auto remove after duration
+        setTimeout(() => {
+            closeNotification(notification.querySelector('.notification-close'));
+        }, duration);
+    }
+    
+    function getNotificationColor(type) {
+        const colors = {
+            'success': '#10B981',
+            'warning': '#F59E0B',
+            'error': '#EF4444',
+            'info': '#3B82F6'
+        };
+        return colors[type] || colors.info;
+    }
+    
+    function closeNotification(btn) {
+        const notification = btn.closest('.notification');
+        if (notification) {
+            notification.classList.add('hide');
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }
+    }
+    
+    // Special notification for appointment confirmations
+    function showConfirmNotification(appointmentId) {
+        const container = document.getElementById('notificationContainer');
+        const notification = document.createElement('div');
+        notification.className = 'notification success';
+        
+        notification.innerHTML = `
+            <div class="notification-icon success-scale-animation">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <path d="M5 13l4 4L19 7" class="check-animation" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div class="notification-content">
+                <div class="notification-title">Appointment Confirmed!</div>
+                <div class="notification-message">Appointment #${appointmentId} has been successfully confirmed.</div>
+            </div>
+            <button class="notification-close" onclick="closeNotification(this)">&times;</button>
+            <div class="notification-progress">
+                <div class="notification-progress-bar" style="color: #10B981"></div>
+            </div>
+        `;
+        
+        container.appendChild(notification);
+        setTimeout(() => {
+            closeNotification(notification.querySelector('.notification-close'));
+        }, 5000);
+    }
+    
+    // Special notification for reschedule
+    function showRescheduleNotification(appointmentId, newDate, newTime) {
+        // Format date nicely
+        const date = new Date(newDate + 'T00:00:00');
+        const formattedDate = date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+        });
+        
+        const container = document.getElementById('notificationContainer');
+        const notification = document.createElement('div');
+        notification.className = 'notification info';
+        
+        notification.innerHTML = `
+            <div class="notification-icon calendar-animation">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="notification-content">
+                <div class="notification-title">Appointment Rescheduled!</div>
+                <div class="notification-message">Appointment #${appointmentId} has been rescheduled to ${formattedDate} at ${newTime}.</div>
+            </div>
+            <button class="notification-close" onclick="closeNotification(this)">&times;</button>
+            <div class="notification-progress">
+                <div class="notification-progress-bar" style="color: #3B82F6"></div>
+            </div>
+        `;
+        
+        container.appendChild(notification);
+        setTimeout(() => {
+            closeNotification(notification.querySelector('.notification-close'));
+        }, 6000);
+    }
+    
+    // Special notification for no-show
+    function showNoShowNotification(appointmentId) {
+        showNotification(
+            'warning',
+            'No-Show Marked',
+            `Appointment #${appointmentId} has been marked as No-Show.`,
+            '<i class="fa-regular fa-eye-slash warning-animation"></i>',
+            5000
+        );
+    }
+    
+    // Special notification for mark as completed
+    function showCompletedNotification(appointmentId) {
+        const container = document.getElementById('notificationContainer');
+        const notification = document.createElement('div');
+        notification.className = 'notification success';
+        
+        notification.innerHTML = `
+            <div class="notification-icon success-scale-animation">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <path d="M5 13l4 4L19 7" class="check-animation" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div class="notification-content">
+                <div class="notification-title">Appointment Completed!</div>
+                <div class="notification-message">Appointment #${appointmentId} has been marked as completed and treatment record saved.</div>
+            </div>
+            <button class="notification-close" onclick="closeNotification(this)">&times;</button>
+            <div class="notification-progress">
+                <div class="notification-progress-bar" style="color: #10B981"></div>
+            </div>
+        `;
+        
+        container.appendChild(notification);
+        setTimeout(() => {
+            closeNotification(notification.querySelector('.notification-close'));
+        }, 6000);
+    }
+    
+    // Special notification for patient update
+    function showPatientUpdatedNotification(patientId, patientName) {
+        const container = document.getElementById('notificationContainer');
+        const notification = document.createElement('div');
+        notification.className = 'notification success';
+        
+        notification.innerHTML = `
+            <div class="notification-icon success-scale-animation">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <path d="M5 13l4 4L19 7" class="check-animation" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div class="notification-content">
+                <div class="notification-title">Patient Updated!</div>
+                <div class="notification-message">Patient #${patientId} (${patientName}) information has been successfully updated.</div>
+            </div>
+            <button class="notification-close" onclick="closeNotification(this)">&times;</button>
+            <div class="notification-progress">
+                <div class="notification-progress-bar" style="color: #10B981"></div>
+            </div>
+        `;
+        
+        container.appendChild(notification);
+        setTimeout(() => {
+            closeNotification(notification.querySelector('.notification-close'));
+        }, 5000);
+    }
+    
+    // Special notification for payment confirmation
+    function showPaymentConfirmedNotification(paymentId, amount) {
+        const container = document.getElementById('notificationContainer');
+        const notification = document.createElement('div');
+        notification.className = 'notification success';
+        
+        notification.innerHTML = `
+            <div class="notification-icon success-scale-animation">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <path d="M5 13l4 4L19 7" class="check-animation" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div class="notification-content">
+                <div class="notification-title">Payment Confirmed!</div>
+                <div class="notification-message">Payment #${paymentId} (₱${parseFloat(amount).toFixed(2)}) has been successfully confirmed.</div>
+            </div>
+            <button class="notification-close" onclick="closeNotification(this)">&times;</button>
+            <div class="notification-progress">
+                <div class="notification-progress-bar" style="color: #10B981"></div>
+            </div>
+        `;
+        
+        container.appendChild(notification);
+        setTimeout(() => {
+            closeNotification(notification.querySelector('.notification-close'));
+        }, 5000);
+    }
+    
+    // Special notification for payment failed
+    function showPaymentFailedNotification(paymentId) {
+        const container = document.getElementById('notificationContainer');
+        const notification = document.createElement('div');
+        notification.className = 'notification error';
+        
+        notification.innerHTML = `
+            <div class="notification-icon">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <div class="notification-content">
+                <div class="notification-title">Payment Marked as Failed</div>
+                <div class="notification-message">Payment #${paymentId} has been marked as failed.</div>
+            </div>
+            <button class="notification-close" onclick="closeNotification(this)">&times;</button>
+            <div class="notification-progress">
+                <div class="notification-progress-bar" style="color: #EF4444"></div>
+            </div>
+        `;
+        
+        container.appendChild(notification);
+        setTimeout(() => {
+            closeNotification(notification.querySelector('.notification-close'));
+        }, 5000);
+    }
+    // ==================== END NOTIFICATION SYSTEM ====================
+
+    // ==================== AJAX HANDLERS ====================
+    
+    // Confirm Appointment
+    function confirmAppointment(button) {
+        const appointmentId = button.getAttribute('data-appointment-id');
+        const formData = new FormData();
+        formData.append('appointment_id', appointmentId);
+        
+        // Show loading state
+        const originalHTML = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        fetch('confirmAppointment.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                return response.json();
+            } else {
+                // If it's HTML or redirect, assume success
+                return { success: true };
+            }
+        })
+        .then(data => {
+            if (data.success || data.status === 'success' || !data.message) {
+                showConfirmNotification(appointmentId);
+                // Reload page after 1.5 seconds to show updated status
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showNotification('error', 'Error', data.message || 'Failed to confirm appointment. Please try again.');
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('error', 'Error', 'An error occurred while confirming the appointment. Please try again.');
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        });
+    }
+    
+    // Mark No-Show
+    function markNoShow(button) {
+        const appointmentId = button.getAttribute('data-appointment-id');
+        const formData = new FormData();
+        formData.append('appointment_id', appointmentId);
+        
+        // Show loading state
+        const originalHTML = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        fetch('noshowAppointment.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                return response.json();
+            } else {
+                // If it's HTML or redirect, assume success
+                return { success: true };
+            }
+        })
+        .then(data => {
+            if (data.success || data.status === 'success' || !data.message) {
+                showNoShowNotification(appointmentId);
+                // Reload page after 1.5 seconds to show updated status
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showNotification('error', 'Error', data.message || 'Failed to mark as no-show. Please try again.');
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('error', 'Error', 'An error occurred while marking as no-show. Please try again.');
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        });
+    }
+    
+    // Handle Reschedule Form Submit
+    function handleRescheduleSubmit(event) {
+        event.preventDefault();
+        
+        const form = event.target;
+        const formData = new FormData(form);
+        const appointmentId = document.getElementById('modalAppointmentID').value;
+        const newDate = document.getElementById('new_date_resched').value;
+        const newTime = document.getElementById('new_time_resched').value;
+        
+        // Get readable time from option text
+        const timeSelect = document.getElementById('new_time_resched');
+        const timeText = timeSelect.options[timeSelect.selectedIndex].text;
+        
+        // Show loading state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        
+        fetch('rescheduleAppointment.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                return response.json();
+            } else {
+                // If it's HTML or redirect, assume success
+                return { success: true };
+            }
+        })
+        .then(data => {
+            if (data.success || data.status === 'success' || !data.message) {
+                showRescheduleNotification(appointmentId, newDate, timeText);
+                closeReschedModal();
+                // Reload page after 2 seconds to show updated appointment
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            } else {
+                showNotification('error', 'Error', data.message || 'Failed to reschedule appointment. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('error', 'Error', 'An error occurred while rescheduling. Please try again.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
+    }
+    
+    // Handle Treatment Form Submit (Mark as Completed)
+    function handleTreatmentSubmit(event) {
+        event.preventDefault();
+        
+        const form = event.target;
+        const formData = new FormData(form);
+        const appointmentId = document.getElementById('treatment_appointment_id').value;
+        
+        // Show loading state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        
+        fetch('saveTreatment.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                return response.json();
+            } else {
+                // If it's HTML or redirect, assume success
+                return { success: true };
+            }
+        })
+        .then(data => {
+            if (data.success || data.status === 'success' || !data.message) {
+                showCompletedNotification(appointmentId);
+                closeCompleteAppointmentModal();
+                // Reset form
+                form.reset();
+                // Reload page after 2 seconds to show updated appointment
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            } else {
+                showNotification('error', 'Error', data.message || 'Failed to save treatment. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('error', 'Error', 'An error occurred while saving treatment. Please try again.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
+    }
+    
+    // Handle Edit Patient Form Submit
+    function handleEditPatientSubmit(event) {
+        event.preventDefault();
+        
+        const form = event.target;
+        const formData = new FormData(form);
+        const patientId = document.getElementById('editPatientId').value;
+        const patientName = document.getElementById('editFirstName').value + ' ' + document.getElementById('editLastName').value;
+        
+        // Show loading state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+        
+        fetch('updatePatient.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                return response.json();
+            } else {
+                // If it's HTML or redirect, assume success
+                return { success: true };
+            }
+        })
+        .then(data => {
+            if (data.success || data.status === 'success' || !data.message) {
+                showPatientUpdatedNotification(patientId, patientName);
+                closeEditPatientModal();
+                // Reload page after 1.5 seconds to show updated patient
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showNotification('error', 'Error', data.message || 'Failed to update patient. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('error', 'Error', 'An error occurred while updating patient. Please try again.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
+    }
+    
+    // Confirm Payment
+    function confirmPayment(button) {
+        const paymentId = button.getAttribute('data-payment-id');
+        const amount = button.getAttribute('data-payment-amount') || '0';
+        const formData = new FormData();
+        formData.append('payment_id', paymentId);
+        
+        // Show loading state
+        const originalHTML = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        fetch('confirmPayment.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                return response.json();
+            } else {
+                // If it's HTML or redirect, assume success
+                return { success: true };
+            }
+        })
+        .then(data => {
+            if (data.success || data.status === 'success' || !data.message) {
+                showPaymentConfirmedNotification(paymentId, amount);
+                // Reload page after 1.5 seconds to show updated payment
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showNotification('error', 'Error', data.message || 'Failed to confirm payment. Please try again.');
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('error', 'Error', 'An error occurred while confirming payment. Please try again.');
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        });
+    }
+    
+    // Mark Payment as Failed
+    function markPaymentFailed(button) {
+        const paymentId = button.getAttribute('data-payment-id');
+        const formData = new FormData();
+        formData.append('payment_id', paymentId);
+        
+        // Show loading state
+        const originalHTML = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        fetch('failedPayment.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                return response.json();
+            } else {
+                // If it's HTML or redirect, assume success
+                return { success: true };
+            }
+        })
+        .then(data => {
+            if (data.success || data.status === 'success' || !data.message) {
+                showPaymentFailedNotification(paymentId);
+                // Reload page after 1.5 seconds to show updated payment
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showNotification('error', 'Error', data.message || 'Failed to mark payment as failed. Please try again.');
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('error', 'Error', 'An error occurred while marking payment as failed. Please try again.');
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        });
+    }
+    // ==================== END AJAX HANDLERS ====================
+
     //Complete Appointment Modal
     function openCompleteAppointmentModal(button) {
     const patientId = button.getAttribute('data-patientid');
@@ -2808,20 +4009,88 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         }, 100);
     });
 
+    // Handle date category change
+    function handleDateCategoryChange() {
+        const dateCategory = document.getElementById("filter-date-category").value;
+        const dateInput = document.getElementById("filter-date");
+        
+        if (dateCategory === "custom") {
+            dateInput.style.display = "inline-block";
+            dateInput.value = "";
+        } else {
+            dateInput.style.display = "none";
+            dateInput.value = "";
+            filterAppointments(); // Auto-filter when category changes
+        }
+    }
+
     // Filter appointments
     function filterAppointments() {
-        let selectedDate = document.getElementById("filter-date").value;
-        let selectedStatus = document.getElementById("filter-status").value.toLowerCase();
-        let rows = document.querySelectorAll(".appointment-row");
+        const dateCategory = document.getElementById("filter-date-category").value;
+        const selectedDate = document.getElementById("filter-date").value;
+        const selectedStatus = document.getElementById("filter-status").value.toLowerCase();
+        const rows = document.querySelectorAll(".appointment-row");
         
+        // Calculate date ranges once
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayStr = today.toISOString().split('T')[0];
+        
+        let weekStart = null, weekEnd = null;
+        let monthStart = null, monthEnd = null;
+        
+        if (dateCategory === "week") {
+            // This week: Monday to Saturday
+            const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+            const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - daysToMonday);
+            weekStart.setHours(0, 0, 0, 0);
+            weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 5); // Monday + 5 days = Saturday
+            weekEnd.setHours(23, 59, 59, 999);
+        } else if (dateCategory === "month") {
+            // This month: first day to last day of current month
+            monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+            monthStart.setHours(0, 0, 0, 0);
+            monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            monthEnd.setHours(23, 59, 59, 999);
+        }
+        
+        // Filter rows
         rows.forEach(row => {
-            let rowDate = row.getAttribute("data-date");
-            let rowStatus = row.getAttribute("data-status");
+            const rowDate = row.getAttribute("data-date");
+            const rowStatus = row.getAttribute("data-status").toLowerCase();
             
-            let dateMatch = selectedDate === "" || rowDate === selectedDate;
-            let statusMatch = selectedStatus === "" || rowStatus === selectedStatus;
+            // Check date match
+            let matchesDate = true;
             
-            if (dateMatch && statusMatch) {
+            if (dateCategory === "custom" && selectedDate) {
+                // Custom date: exact match
+                matchesDate = rowDate === selectedDate;
+            } else if (dateCategory === "today") {
+                // Today: only today's date
+                matchesDate = rowDate === todayStr;
+            } else if (dateCategory === "week") {
+                // This week: Monday to Saturday
+                const rowDateObj = new Date(rowDate);
+                rowDateObj.setHours(0, 0, 0, 0);
+                matchesDate = rowDateObj >= weekStart && rowDateObj <= weekEnd;
+            } else if (dateCategory === "month") {
+                // This month: first day to last day of current month
+                const rowDateObj = new Date(rowDate);
+                rowDateObj.setHours(0, 0, 0, 0);
+                matchesDate = rowDateObj >= monthStart && rowDateObj <= monthEnd;
+            } else if (dateCategory === "") {
+                // All dates
+                matchesDate = true;
+            }
+            
+            // Check status match
+            const matchesStatus = selectedStatus === "" || rowStatus === selectedStatus;
+            
+            // Show/hide row
+            if (matchesDate && matchesStatus) {
                 row.style.display = "table-row";
             } else {
                 row.style.display = "none";
@@ -2847,10 +4116,267 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 
         clickedElement.classList.add('active');
     }
+    
+    // Show Controls Popup
+    function showControlsPopup() {
+        document.getElementById('controlsPopupModal').style.display = 'block';
+    }
+    
+    // Close Controls Popup
+    function closeControlsPopup() {
+        document.getElementById('controlsPopupModal').style.display = 'none';
+    }
+    
+    // Navigate to Clinic Control with animation
+    function navigateToClinicControl() {
+        closeControlsPopup();
+        const mainContent = document.querySelector('.main-content');
+        const clinicControlBtn = document.querySelector('.sidebar-btn-clinic-control');
+        
+        if (mainContent) {
+            mainContent.classList.add('page-fade-out');
+        }
+        
+        if (clinicControlBtn) {
+            clinicControlBtn.style.transform = 'scale(0.95)';
+        }
+        
+        setTimeout(() => {
+            window.location.href = 'clinicControl.php';
+        }, 300);
+    }
+    
+    // Navigate to User Control with animation
+    function navigateToUserControl() {
+        closeControlsPopup();
+        const mainContent = document.querySelector('.main-content');
+        const clinicControlBtn = document.querySelector('.sidebar-btn-clinic-control');
+        
+        if (mainContent) {
+            mainContent.classList.add('page-fade-out');
+        }
+        
+        if (clinicControlBtn) {
+            clinicControlBtn.style.transform = 'scale(0.95)';
+        }
+        
+        setTimeout(() => {
+            window.location.href = 'userControl.php';
+        }, 300);
+    }
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('controlsPopupModal');
+        if (event.target === modal) {
+            closeControlsPopup();
+        }
+    });
 
     function printAppointments() {
         window.print();
     }
+
+    // ==================== PAYMENT FILTERING ====================
+    
+    // Handle Payment Date Category Change
+    function handlePaymentDateCategoryChange() {
+        const dateCategory = document.getElementById("filter-payment-date-category").value;
+        const dateInput = document.getElementById("filter-payment-date");
+        
+        if (dateCategory === "custom") {
+            dateInput.style.display = "inline-block";
+            dateInput.value = "";
+        } else {
+            dateInput.style.display = "none";
+            dateInput.value = "";
+            filterPayments(); // Auto-filter when category changes
+        }
+    }
+
+    // Filter Payments
+    function filterPayments() {
+        const dateCategory = document.getElementById("filter-payment-date-category").value;
+        const selectedDate = document.getElementById("filter-payment-date").value;
+        const selectedStatus = document.getElementById("filter-payment-status").value.toLowerCase();
+        const selectedMethod = document.getElementById("filter-payment-method").value.toLowerCase();
+        const rows = document.querySelectorAll(".payment-row");
+        
+        // Calculate date ranges once
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayStr = today.toISOString().split('T')[0];
+        
+        let weekStart = null, weekEnd = null;
+        let monthStart = null, monthEnd = null;
+        
+        if (dateCategory === "week") {
+            // This week: Monday to Saturday
+            const dayOfWeek = today.getDay();
+            const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+            weekStart = new Date(today);
+            weekStart.setDate(today.getDate() - daysToMonday);
+            weekStart.setHours(0, 0, 0, 0);
+            weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 5);
+            weekEnd.setHours(23, 59, 59, 999);
+        } else if (dateCategory === "month") {
+            // This month: first day to last day of current month
+            monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+            monthStart.setHours(0, 0, 0, 0);
+            monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            monthEnd.setHours(23, 59, 59, 999);
+        }
+        
+        // Filter rows
+        rows.forEach(row => {
+            const rowDate = row.getAttribute("data-date");
+            const rowStatus = row.getAttribute("data-status").toLowerCase();
+            const rowMethod = row.getAttribute("data-method").toLowerCase();
+            
+            // Check date match
+            let matchesDate = true;
+            
+            if (dateCategory === "custom" && selectedDate) {
+                // Custom date: exact match
+                matchesDate = rowDate === selectedDate;
+            } else if (dateCategory === "today") {
+                // Today: only today's date
+                matchesDate = rowDate === todayStr;
+            } else if (dateCategory === "week") {
+                // This week: Monday to Saturday
+                if (rowDate) {
+                    const rowDateObj = new Date(rowDate);
+                    rowDateObj.setHours(0, 0, 0, 0);
+                    matchesDate = rowDateObj >= weekStart && rowDateObj <= weekEnd;
+                } else {
+                    matchesDate = false;
+                }
+            } else if (dateCategory === "month") {
+                // This month: first day to last day of current month
+                if (rowDate) {
+                    const rowDateObj = new Date(rowDate);
+                    rowDateObj.setHours(0, 0, 0, 0);
+                    matchesDate = rowDateObj >= monthStart && rowDateObj <= monthEnd;
+                } else {
+                    matchesDate = false;
+                }
+            } else if (dateCategory === "") {
+                // All dates
+                matchesDate = true;
+            }
+            
+            // Check status match
+            const matchesStatus = selectedStatus === "" || rowStatus === selectedStatus;
+            
+            // Check method match
+            const matchesMethod = selectedMethod === "" || rowMethod === selectedMethod;
+            
+            // Show/hide row
+            if (matchesDate && matchesStatus && matchesMethod) {
+                row.style.display = "table-row";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    }
+    
+    // Print Payments
+    function printPayments() {
+        window.print();
+    }
+    
+    // ==================== END PAYMENT FILTERING ====================
+
+    // ==================== PATIENT FILTERING ====================
+    
+    // Filter Patients
+    function filterPatients() {
+        const selectedGender = document.getElementById("filter-patient-gender").value.toLowerCase();
+        const selectedAge = document.getElementById("filter-patient-age").value.toLowerCase();
+        const searchInput = document.getElementById("filter-patient-search");
+        const searchText = searchInput.value.toLowerCase().trim();
+        const rows = document.querySelectorAll(".patient-row");
+        const clearBtn = document.getElementById("clear-search-btn");
+        
+        // Show/hide clear button based on input
+        if (searchText !== "") {
+            clearBtn.style.display = "flex";
+        } else {
+            clearBtn.style.display = "none";
+        }
+        
+        // Filter rows
+        rows.forEach(row => {
+            const rowGender = row.getAttribute("data-gender").toLowerCase();
+            const rowAgeCategory = row.getAttribute("data-age-category").toLowerCase();
+            const rowSearch = row.getAttribute("data-search").toLowerCase();
+            
+            // Check gender match
+            const matchesGender = selectedGender === "" || rowGender === selectedGender;
+            
+            // Check age category match
+            const matchesAge = selectedAge === "" || rowAgeCategory === selectedAge;
+            
+            // Check search match
+            const matchesSearch = searchText === "" || rowSearch.includes(searchText);
+            
+            // Show/hide row
+            if (matchesGender && matchesAge && matchesSearch) {
+                row.style.display = "table-row";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    }
+    
+    // Clear Patient Search
+    function clearPatientSearch() {
+        const searchInput = document.getElementById("filter-patient-search");
+        const clearBtn = document.getElementById("clear-search-btn");
+        
+        searchInput.value = "";
+        clearBtn.style.display = "none";
+        filterPatients(); // Re-filter to show all patients
+        searchInput.focus(); // Focus back on the search input
+    }
+    
+    // Print Patients
+    function printPatients() {
+        window.print();
+    }
+    
+    // ==================== END PATIENT FILTERING ====================
+
+    // ==================== SERVICE FILTERING ====================
+    
+    // Filter Services
+    function filterServices() {
+        const selectedCategory = document.getElementById("filter-service-category").value.toLowerCase();
+        const rows = document.querySelectorAll(".service-row");
+        
+        // Filter rows
+        rows.forEach(row => {
+            const rowCategory = row.getAttribute("data-category").toLowerCase();
+            
+            // Check category match
+            const matchesCategory = selectedCategory === "" || rowCategory === selectedCategory;
+            
+            // Show/hide row
+            if (matchesCategory) {
+                row.style.display = "table-row";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    }
+    
+    // Print Services
+    function printServices() {
+        window.print();
+    }
+    
+    // ==================== END SERVICE FILTERING ====================
 
     // Modal functions
     document.addEventListener('DOMContentLoaded', function () {
@@ -2929,7 +4455,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             })
             .catch(error => {
                 console.error('Error fetching service:', error);
-                alert('Error loading service: ' + error.message);
+                showNotification('error', 'Error Loading Service', error.message || 'Failed to load service details.');
             });
     }
 
@@ -2945,7 +4471,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         const appointmentID = btn.getAttribute('data-id');
         
         if (!appointmentID) {
-            alert('Error: Appointment ID not found');
+            showNotification('error', 'Error', 'Appointment ID not found. Please try again.');
             return false;
         }
         
@@ -3027,7 +4553,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
             })
             .catch(error => {
                 console.error('Error fetching patient:', error);
-                alert('Error loading patient: ' + error.message);
+                showNotification('error', 'Error Loading Patient', error.message || 'Failed to load patient details.');
             });
     }
 
@@ -3037,10 +4563,11 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 
     function archivePatient(patientId) {
         if (!patientId || patientId <= 0) {
-            alert('Invalid patient ID.');
+            showNotification('error', 'Invalid Input', 'Invalid patient ID. Please try again.');
             return;
         }
 
+        // Use custom confirmation with notification
         if (confirm('Are you sure you want to archive this patient? This action cannot be undone.')) {
             const form = document.createElement('form');
             form.method = 'POST';
@@ -3130,7 +4657,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
     } catch (error) {
         console.error('Error fetching admin users:', error);
         console.error('Error stack:', error.stack);
-        alert('Error loading user data: ' + error.message);
+        showNotification('error', 'Error Loading Data', error.message || 'Failed to load user data.');
         
         // Show error in dropdown
         const userSelect = document.getElementById('userid');
@@ -3237,12 +4764,12 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                     // Show the modal
                     document.getElementById('editDentistModal').style.display = 'block';
                 } else {
-                    alert('Error loading staff details: ' + (data.message || 'Unknown error'));
+                    showNotification('error', 'Error Loading Staff', data.message || 'Unknown error occurred.');
                 }
             })
             .catch(error => {
                 console.error('Error fetching staff:', error);
-                alert('Error loading staff details: ' + error.message);
+                showNotification('error', 'Error Loading Staff', error.message || 'Failed to load staff details.');
             });
     }
 
@@ -3917,7 +5444,406 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         if (event.target === document.getElementById('addAvailabilityModal')) {
             closeAvailabilityModal();
         }
+        if (event.target === document.getElementById('blockDayModal')) {
+            closeBlockDayModal();
+        }
+        if (event.target === document.getElementById('holidayModal')) {
+            closeHolidayModal();
+        }
+        if (event.target === document.getElementById('emergencyClosureModal')) {
+            closeEmergencyClosureModal();
+        }
     });
+
+    // ==================== CLINIC CLOSURE MANAGEMENT ====================
+    
+    // Block Entire Day Modal Functions
+    function openBlockDayModal() {
+        document.getElementById('blockDayModal').style.display = 'block';
+    }
+    
+    function closeBlockDayModal() {
+        document.getElementById('blockDayModal').style.display = 'none';
+        document.getElementById('blockDayForm').reset();
+        const customReasonContainer = document.getElementById('blockDayCustomReasonContainer');
+        if (customReasonContainer) {
+            customReasonContainer.style.display = 'none';
+        }
+    }
+    
+    // Handle block day form submission
+    function handleBlockDaySubmit(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        const closureDate = formData.get('closure_date');
+        const closureType = formData.get('closure_type');
+        let reason = formData.get('reason');
+        const customReason = formData.get('custom_reason');
+        const notifyPatients = formData.get('notify_patients') === 'on';
+        
+        // Use custom reason if "Other" is selected
+        if (reason === 'Other' && customReason) {
+            reason = customReason;
+        }
+        
+        if (!reason || reason.trim() === '') {
+            showNotification('error', 'Error', 'Please provide a reason for the closure.');
+            return;
+        }
+        
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        
+        // Create request data
+        const requestData = {
+            action: 'block_day',
+            date: closureDate,
+            closure_type: closureType,
+            reason: reason,
+            custom_reason: customReason || '',
+            notify_patients: notifyPatients
+        };
+        
+        fetch('manage_clinic_closure.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('success', 'Day Blocked Successfully', `Date ${closureDate} has been blocked. ${notifyPatients ? 'Patients have been notified.' : ''}`);
+                closeBlockDayModal();
+                loadClinicClosures();
+                loadScheduleData(); // Reload schedule to reflect changes
+            } else {
+                showNotification('error', 'Error', data.message || 'Failed to block day. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('error', 'Error', 'An error occurred while blocking the day. Please try again.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
+    }
+    
+    // Show custom reason field when "Other" is selected
+    document.addEventListener('DOMContentLoaded', function() {
+        const reasonSelect = document.getElementById('blockDayReason');
+        const customReasonContainer = document.getElementById('blockDayCustomReasonContainer');
+        const customReasonTextarea = document.getElementById('blockDayCustomReason');
+        if (reasonSelect && customReasonContainer && customReasonTextarea) {
+            reasonSelect.addEventListener('change', function() {
+                if (this.value === 'Other') {
+                    customReasonContainer.style.display = 'block';
+                    customReasonTextarea.setAttribute('required', 'required');
+                } else {
+                    customReasonContainer.style.display = 'none';
+                    customReasonTextarea.removeAttribute('required');
+                    customReasonTextarea.value = '';
+                }
+            });
+        }
+        
+        // Handle closure duration radio buttons for emergency closure
+        const closureDurationRadios = document.querySelectorAll('input[name="closure_duration"]');
+        const endDateContainer = document.getElementById('emergencyEndDateContainer');
+        if (closureDurationRadios.length > 0 && endDateContainer) {
+            closureDurationRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (this.value === 'date_range') {
+                        endDateContainer.style.display = 'block';
+                        document.getElementById('emergencyEndDate').setAttribute('required', 'required');
+                    } else {
+                        endDateContainer.style.display = 'none';
+                        document.getElementById('emergencyEndDate').removeAttribute('required');
+                        document.getElementById('emergencyEndDate').value = '';
+                    }
+                });
+            });
+        }
+    });
+    
+    // Holiday Management Modal Functions
+    function openHolidayModal() {
+        document.getElementById('holidayModal').style.display = 'block';
+        loadHolidays();
+    }
+    
+    function closeHolidayModal() {
+        document.getElementById('holidayModal').style.display = 'none';
+        hideAddHolidayForm();
+    }
+    
+    function showAddHolidayForm() {
+        document.getElementById('addHolidayForm').style.display = 'block';
+    }
+    
+    function hideAddHolidayForm() {
+        document.getElementById('addHolidayForm').style.display = 'none';
+        document.getElementById('holidayForm').reset();
+    }
+    
+    // Handle holiday form submission
+    function handleHolidaySubmit(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+        
+        const requestData = {
+            action: 'add_holiday',
+            holiday_name: formData.get('holiday_name'),
+            holiday_date: formData.get('holiday_date'),
+            recurrence: formData.get('recurrence')
+        };
+        
+        fetch('manage_clinic_closure.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('success', 'Holiday Added', `Holiday "${requestData.holiday_name}" has been added.`);
+                hideAddHolidayForm();
+                loadHolidays();
+                loadScheduleData();
+            } else {
+                showNotification('error', 'Error', data.message || 'Failed to add holiday. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('error', 'Error', 'An error occurred while adding holiday. Please try again.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
+    }
+    
+    // Load holidays list
+    function loadHolidays() {
+        fetch('get_holidays.php')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('holidaysTableBody');
+            if (!tbody) return;
+            
+            if (data.success && data.holidays && data.holidays.length > 0) {
+                tbody.innerHTML = '';
+                data.holidays.forEach(holiday => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td style="padding: 12px;">${holiday.holiday_name}</td>
+                        <td style="padding: 12px;">${holiday.holiday_date}</td>
+                        <td style="padding: 12px;">${holiday.recurrence === 'yearly' ? 'Yearly (Recurring)' : 'One Time'}</td>
+                        <td style="padding: 12px; text-align: center;">
+                            <button class="action-btn btn-danger" onclick="deleteHoliday(${holiday.id})" title="Delete">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 20px;">No holidays found. Add one to get started.</td></tr>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading holidays:', error);
+        });
+    }
+    
+    // Delete holiday
+    function deleteHoliday(holidayId) {
+        if (!confirm('Are you sure you want to delete this holiday?')) {
+            return;
+        }
+        
+        fetch('manage_clinic_closure.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'delete_holiday',
+                holiday_id: holidayId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('success', 'Holiday Deleted', 'Holiday has been deleted successfully.');
+                loadHolidays();
+                loadScheduleData();
+            } else {
+                showNotification('error', 'Error', data.message || 'Failed to delete holiday.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('error', 'Error', 'An error occurred while deleting holiday.');
+        });
+    }
+    
+    // Emergency Closure Modal Functions
+    function openEmergencyClosureModal() {
+        document.getElementById('emergencyClosureModal').style.display = 'block';
+    }
+    
+    function closeEmergencyClosureModal() {
+        document.getElementById('emergencyClosureModal').style.display = 'none';
+        document.getElementById('emergencyClosureForm').reset();
+        document.getElementById('emergencyEndDateContainer').style.display = 'none';
+    }
+    
+    // Handle emergency closure form submission
+    function handleEmergencyClosureSubmit(event) {
+        event.preventDefault();
+        const form = event.target;
+        const formData = new FormData(form);
+        
+        const startDate = formData.get('start_date');
+        const endDate = formData.get('end_date');
+        const closureDuration = formData.get('closure_duration');
+        const reason = formData.get('reason');
+        const notifyPatients = formData.get('notify_patients') === 'on';
+        
+        if (!confirm('⚠️ WARNING: This will cancel all appointments during the closure period. Are you absolutely sure you want to proceed?')) {
+            return;
+        }
+        
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing Emergency Closure...';
+        
+        const requestData = {
+            action: 'emergency_closure',
+            start_date: startDate,
+            end_date: closureDuration === 'date_range' ? endDate : startDate,
+            reason: reason,
+            notify_patients: notifyPatients
+        };
+        
+        fetch('manage_clinic_closure.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('warning', 'Emergency Closure Activated', `Clinic closed from ${startDate} to ${requestData.end_date}. ${data.cancelled_count || 0} appointments cancelled. ${notifyPatients ? 'Patients have been notified.' : ''}`);
+                closeEmergencyClosureModal();
+                loadClinicClosures();
+                loadScheduleData();
+            } else {
+                showNotification('error', 'Error', data.message || 'Failed to process emergency closure. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('error', 'Error', 'An error occurred while processing emergency closure. Please try again.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
+    }
+    
+    // Load clinic closures list
+    function loadClinicClosures() {
+        fetch('get_clinic_closures.php')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('clinicClosureList');
+            if (!container) return;
+            
+            if (data.success && data.closures && data.closures.length > 0) {
+                let html = '<h4 style="margin-bottom: 15px;">Active Closures:</h4>';
+                html += '<div style="display: grid; gap: 10px;">';
+                data.closures.forEach(closure => {
+                    const closureTypeBadge = closure.closure_type === 'full_day' ? 
+                        '<span style="background: #dc3545; color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px;">Full Day</span>' :
+                        '<span style="background: #ffc107; color: #856404; padding: 4px 8px; border-radius: 4px; font-size: 12px;">No New Appointments</span>';
+                    
+                    html += `
+                        <div style="background: white; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>${closure.date}</strong> - ${closure.reason}
+                                ${closureTypeBadge}
+                            </div>
+                            <button class="btn btn-sm btn-secondary" onclick="removeClosure('${closure.date}')" title="Remove Closure">
+                                <i class="fas fa-times"></i> Remove
+                            </button>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = '<p style="color: #6c757d; margin: 0;">No active closures.</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading clinic closures:', error);
+        });
+    }
+    
+    // Remove closure
+    function removeClosure(date) {
+        if (!confirm(`Are you sure you want to remove the closure for ${date}?`)) {
+            return;
+        }
+        
+        fetch('manage_clinic_closure.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'remove_closure',
+                date: date
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('success', 'Closure Removed', `Closure for ${date} has been removed.`);
+                loadClinicClosures();
+                loadScheduleData();
+            } else {
+                showNotification('error', 'Error', data.message || 'Failed to remove closure.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('error', 'Error', 'An error occurred while removing closure.');
+        });
+    }
+    
+    // General clinic closure modal (placeholder - can be expanded)
+    // ==================== END CLINIC CLOSURE MANAGEMENT ====================
 </script>
 </body>
 </html>

@@ -18,29 +18,40 @@ if (isset($_POST['submit'])) {
         if ($result && $result->num_rows > 0) {
             $row = $result->fetch_assoc();
 
-            // ✅ Verify password
-            if (password_verify($password, $row['password_hash'])) {
-                // ✅ Set session variables (after successful login)
-                $_SESSION['userID'] = $row['user_id'];
-                $_SESSION['username'] = $row['username'];
-                $_SESSION['first_name'] = $row['first_name'] ?? '';
-                $_SESSION['last_name'] = $row['last_name'] ?? '';
-                $_SESSION['email'] = $row['email'] ?? '';
-                $_SESSION['phone'] = $row['phone'] ?? '';
-                $_SESSION['role'] = $row['role'] ?? 'user';
-                $_SESSION['valid'] = true;
-
-                if (strtolower($row['role']) === 'admin') {
-                header("Location: admin_verify.php");
-                exit();
-
-                } else {
-                    header("Location: ../index.php");
-                    exit();
-                }
-
+            // ✅ Check if user account is blocked
+            $userStatus = isset($row['status']) ? strtolower($row['status']) : 'active';
+            if ($userStatus === 'blocked') {
+                $error = "Your account has been blocked. Please contact the administrator.";
             } else {
-                $error = "Incorrect password. Please try again.";
+                // ✅ Verify password
+                if (password_verify($password, $row['password_hash'])) {
+                    // ✅ Update last login timestamp
+                    $updateLastLogin = "UPDATE user_account SET last_login = NOW() WHERE user_id = ?";
+                    $updateStmt = $con->prepare($updateLastLogin);
+                    $updateStmt->bind_param("s", $row['user_id']);
+                    $updateStmt->execute();
+                    $updateStmt->close();
+                    
+                    // ✅ Set session variables (after successful login)
+                    $_SESSION['userID'] = $row['user_id'];
+                    $_SESSION['username'] = $row['username'];
+                    $_SESSION['first_name'] = $row['first_name'] ?? '';
+                    $_SESSION['last_name'] = $row['last_name'] ?? '';
+                    $_SESSION['email'] = $row['email'] ?? '';
+                    $_SESSION['phone'] = $row['phone'] ?? '';
+                    $_SESSION['role'] = $row['role'] ?? 'user';
+                    $_SESSION['valid'] = true;
+
+                    if (strtolower($row['role']) === 'admin') {
+                        header("Location: admin_verify.php");
+                        exit();
+                    } else {
+                        header("Location: ../index.php");
+                        exit();
+                    }
+                } else {
+                    $error = "Incorrect password. Please try again.";
+                }
             }
         } else {
             $error = "No account found with that username.";
