@@ -31,7 +31,7 @@ if (!empty($user['patient_id'])) {
     // Query for all appointments with payment information
     $appt_query = $con->prepare("
         SELECT a.appointment_id, a.appointment_date, a.appointment_time, 
-               s.service_category, a.status, a.created_at,
+                s.sub_service ,s.service_category, a.status, a.created_at,
                p.method as payment_method, p.status as payment_status
         FROM appointments a
         INNER JOIN services s ON a.service_id = s.service_id
@@ -474,7 +474,7 @@ if (!empty($user['patient_id'])) {
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">Service</span>
-                                <span class="detail-value"><?= htmlspecialchars($appointment['service_category']); ?></span>
+                                <span class="detail-value"><?= htmlspecialchars($appointment['sub_service']); ?></span>
                             </div>
                             <div class="detail-item">
                                 <span class="detail-label">Dentist</span>

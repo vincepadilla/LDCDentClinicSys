@@ -43,7 +43,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if (!empty($user_id)) {
             $updateUserSql = "UPDATE user_account SET 
                              first_name = ?, last_name = ?, email = ?, phone = ?,
-                             name = CONCAT(?, ' ', ?)
+                             first_name = CONCAT(?, ' ', ?)
                              WHERE user_id = ?";
 
             if ($stmt = $con->prepare($updateUserSql)) {
