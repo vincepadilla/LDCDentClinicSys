@@ -1,6 +1,6 @@
 <?php
 // --- CONFIGURATION --- 
-$geminiApiKey = 'AIzaSyBspIeePTQCxRjjThpDVVk2RrqQ5L72yEo';
+$geminiApiKey = 'AIzaSyBPw5paHjB1fHQQUu41lQWbwOYnkYgQ6k4';
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');

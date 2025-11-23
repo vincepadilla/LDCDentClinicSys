@@ -8,7 +8,7 @@ $checkQuery = "SELECT * FROM dental_blogs WHERE DATE(published_at) = '$today'";
 $result = mysqli_query($con, $checkQuery);
 
 if (mysqli_num_rows($result) == 0) {
-    $apiKey = "AIzaSyBspIeePTQCxRjjThpDVVk2RrqQ5L72yEo";
+    $apiKey = "AIzaSyDraifjXZs-QdI-b-c2RmLCA6392u9qoOg";
     $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey";
     $prompt = "Generate a short, friendly, and informative blog post for a modern dental clinic website.
 Include:
