@@ -376,6 +376,91 @@ console.log('DEBUG: Found appointments => " . count($recent_appointments) . "');
         .btn-feedback.disabled {
             background: #6B7280;
         }
+
+        /* Password Requirements Styling */
+        .password-requirements {
+            margin-top: 15px;
+            padding: 15px;
+            background: #F9FAFB;
+            border-radius: 8px;
+            border: 1px solid #E5E7EB;
+        }
+
+        .password-requirements p {
+            margin: 0 0 10px 0;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .password-requirements ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .password-requirements li {
+            padding: 5px 0;
+            color: #6B7280;
+            transition: all 0.3s ease;
+        }
+
+        .password-requirements li.requirement-met {
+            color: #10B981;
+            font-weight: 500;
+        }
+
+        .password-requirements li.requirement-met::before {
+            content: "✓ ";
+            color: #10B981;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .password-strength {
+            margin-top: 10px;
+        }
+
+        .strength-bar {
+            height: 4px;
+            background: #E5E7EB;
+            border-radius: 2px;
+            margin-bottom: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .strength-bar.weak {
+            background: #EF4444;
+            width: 33%;
+        }
+
+        .strength-bar.medium {
+            background: #F59E0B;
+            width: 66%;
+        }
+
+        .strength-bar.strong {
+            background: #10B981;
+            width: 100%;
+        }
+
+        .strength-text {
+            font-size: 12px;
+            color: #6B7280;
+        }
+
+        .validation-message {
+            display: block;
+            margin-top: 5px;
+            font-size: 12px;
+        }
+
+        .validation-message.valid {
+            color: #10B981;
+        }
+
+        .validation-message.invalid {
+            color: #EF4444;
+        }
     </style>
 </head>
 <body>
@@ -400,6 +485,24 @@ if (isset($_SESSION['feedback_error'])) {
         });
     </script>";
     unset($_SESSION['feedback_error']);
+}
+
+// Display password change success/error messages
+if (isset($_SESSION['password_success'])) {
+    echo "<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showNotification('success', 'Password Changed!', '" . addslashes($_SESSION['password_success']) . "');
+        });
+    </script>";
+    unset($_SESSION['password_success']);
+}
+if (isset($_SESSION['password_error'])) {
+    echo "<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            showNotification('error', 'Password Change Failed', '" . addslashes($_SESSION['password_error']) . "');
+        });
+    </script>";
+    unset($_SESSION['password_error']);
 }
 ?>
 
@@ -631,25 +734,34 @@ if (isset($_SESSION['feedback_error'])) {
                             </div>
                             
                             <div class="appointment-actions">
-                                <a href="printAppointmentReceipt.php?id=<?= $recent_appointment['appointment_id']; ?>" 
-                                   class="btn btn-secondary <?= $printReceiptDisabled ? 'disabled' : ''; ?>"
-                                   target="_blank"
-                                   <?= $printReceiptDisabled ? 'onclick="return false;" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;"' : ''; ?>>
-                                    Print Receipt
-                                </a>
+                                <?php if ($status == 'Cancelled'): ?>
+                                    <!-- Only show Reschedule button for Cancelled appointments -->
+                                    <a href="reschedule.php?id=<?= $recent_appointment['appointment_id']; ?>" 
+                                       class="btn btn-primary">
+                                        Reschedule
+                                    </a>
+                                <?php else: ?>
+                                    <!-- Show all buttons for non-cancelled appointments -->
+                                    <a href="printAppointmentReceipt.php?id=<?= $recent_appointment['appointment_id']; ?>" 
+                                       class="btn btn-secondary <?= $printReceiptDisabled ? 'disabled' : ''; ?>"
+                                       target="_blank"
+                                       <?= $printReceiptDisabled ? 'onclick="return false;" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;"' : ''; ?>>
+                                        Print Receipt
+                                    </a>
 
-                                <button type="button" 
-                                   class="btn btn-danger <?= $buttonsDisabled ? 'disabled' : ''; ?>"
-                                   data-appointment-id="<?= htmlspecialchars($recent_appointment['appointment_id']); ?>"
-                                   <?= $buttonsDisabled ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : 'onclick="showCancelConfirmation(this)"'; ?>>
-                                    Cancel
-                                </button>
+                                    <button type="button" 
+                                       class="btn btn-danger <?= $buttonsDisabled ? 'disabled' : ''; ?>"
+                                       data-appointment-id="<?= htmlspecialchars($recent_appointment['appointment_id']); ?>"
+                                       <?= $buttonsDisabled ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : 'onclick="showCancelConfirmation(this)"'; ?>>
+                                        Cancel
+                                    </button>
 
-                                <a href="reschedule.php?id=<?= $recent_appointment['appointment_id']; ?>" 
-                                   class="btn btn-primary <?= $buttonsDisabled ? 'disabled' : ''; ?>"
-                                   <?= $buttonsDisabled ? 'style="opacity: 0.5; cursor: not-allowed;"' : ''; ?>>
-                                    Reschedule
-                                </a>
+                                    <a href="reschedule.php?id=<?= $recent_appointment['appointment_id']; ?>" 
+                                       class="btn btn-primary <?= $buttonsDisabled ? 'disabled' : ''; ?>"
+                                       <?= $buttonsDisabled ? 'style="opacity: 0.5; cursor: not-allowed;"' : ''; ?>>
+                                        Reschedule
+                                    </a>
+                                <?php endif; ?>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -1012,18 +1124,54 @@ document.addEventListener('DOMContentLoaded', function() {
     const credentialsForm = document.getElementById('credentialsForm');
     if (credentialsForm) {
         credentialsForm.addEventListener('submit', function(e) {
+            const currentPassword = document.getElementById('current_password').value;
             const newPassword = document.getElementById('new_password').value;
             const confirmPassword = document.getElementById('confirm_password').value;
             
-            if (newPassword !== confirmPassword) {
+            // Check if current password is provided
+            if (!currentPassword) {
                 e.preventDefault();
-                alert('Passwords do not match!');
+                showNotification('error', 'Validation Error', 'Please enter your current password.');
                 return false;
             }
             
-            if (checkPasswordStrength(newPassword) < 3) {
+            // Check if passwords match
+            if (newPassword !== confirmPassword) {
                 e.preventDefault();
-                alert('Please choose a stronger password!');
+                showNotification('error', 'Validation Error', 'New passwords do not match!');
+                return false;
+            }
+            
+            // Check password strength (must meet all requirements)
+            const strength = checkPasswordStrength(newPassword);
+            const requirements = {
+                length: newPassword.length >= 8,
+                uppercase: /[A-Z]/.test(newPassword),
+                lowercase: /[a-z]/.test(newPassword),
+                number: /[0-9]/.test(newPassword),
+                special: /[^A-Za-z0-9]/.test(newPassword)
+            };
+            
+            // Check if all requirements are met
+            const allRequirementsMet = Object.values(requirements).every(req => req === true);
+            
+            if (!allRequirementsMet) {
+                e.preventDefault();
+                const missingRequirements = [];
+                if (!requirements.length) missingRequirements.push('at least 8 characters');
+                if (!requirements.uppercase) missingRequirements.push('one uppercase letter');
+                if (!requirements.lowercase) missingRequirements.push('one lowercase letter');
+                if (!requirements.number) missingRequirements.push('one number');
+                if (!requirements.special) missingRequirements.push('one special character');
+                
+                showNotification('error', 'Password Requirements Not Met', 
+                    'Your password must contain: ' + missingRequirements.join(', '));
+                return false;
+            }
+            
+            if (strength < 5) {
+                e.preventDefault();
+                showNotification('error', 'Weak Password', 'Please choose a stronger password that meets all requirements.');
                 return false;
             }
             

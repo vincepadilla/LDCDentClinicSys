@@ -517,25 +517,34 @@ if (!empty($user['patient_id'])) {
                         </div>
                         
                         <div class="appointment-actions">
-                            <a href="printAppointmentReceipt.php?id=<?= $appointment['appointment_id']; ?>" 
-                               class="btn btn-secondary <?= $printReceiptDisabled ? 'disabled' : ''; ?>"
-                               target="_blank"
-                               <?= $printReceiptDisabled ? 'onclick="return false;" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;"' : ''; ?>>
-                                Print Receipt
-                            </a>
+                            <?php if ($status == 'Cancelled'): ?>
+                                <!-- Only show Reschedule button for Cancelled appointments -->
+                                <a href="reschedule.php?id=<?= $appointment['appointment_id']; ?>" 
+                                   class="btn btn-primary">
+                                    Reschedule
+                                </a>
+                            <?php else: ?>
+                                <!-- Show all buttons for non-cancelled appointments -->
+                                <a href="printAppointmentReceipt.php?id=<?= $appointment['appointment_id']; ?>" 
+                                   class="btn btn-secondary <?= $printReceiptDisabled ? 'disabled' : ''; ?>"
+                                   target="_blank"
+                                   <?= $printReceiptDisabled ? 'onclick="return false;" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;"' : ''; ?>>
+                                    Print Receipt
+                                </a>
 
-                            <button type="button" 
-                               class="btn btn-danger <?= $buttonsDisabled ? 'disabled' : ''; ?>"
-                               data-appointment-id="<?= htmlspecialchars($appointment['appointment_id']); ?>"
-                               <?= $buttonsDisabled ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : 'onclick="showCancelConfirmation(this)"'; ?>>
-                                Cancel
-                            </button>
+                                <button type="button" 
+                                   class="btn btn-danger <?= $buttonsDisabled ? 'disabled' : ''; ?>"
+                                   data-appointment-id="<?= htmlspecialchars($appointment['appointment_id']); ?>"
+                                   <?= $buttonsDisabled ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : 'onclick="showCancelConfirmation(this)"'; ?>>
+                                    Cancel
+                                </button>
 
-                            <a href="reschedule.php?id=<?= $appointment['appointment_id']; ?>" 
-                               class="btn btn-primary <?= $buttonsDisabled ? 'disabled' : ''; ?>"
-                               <?= $buttonsDisabled ? 'style="opacity: 0.5; cursor: not-allowed;"' : ''; ?>>
-                                Reschedule
-                            </a>
+                                <a href="reschedule.php?id=<?= $appointment['appointment_id']; ?>" 
+                                   class="btn btn-primary <?= $buttonsDisabled ? 'disabled' : ''; ?>"
+                                   <?= $buttonsDisabled ? 'style="opacity: 0.5; cursor: not-allowed;"' : ''; ?>>
+                                    Reschedule
+                                </a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 <?php endforeach; ?>

@@ -22,13 +22,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Basic validation
     if ($new_password !== $confirm_password) {
-        $_SESSION['error_message'] = "New passwords do not match!";
+        $_SESSION['password_error'] = "New passwords do not match!";
         header("Location: account.php");
         exit();
     }
 
+    // Validate all password requirements
+    $errors = [];
+    
     if (strlen($new_password) < 8) {
-        $_SESSION['error_message'] = "Password must be at least 8 characters long!";
+        $errors[] = "Password must be at least 8 characters long";
+    }
+    
+    if (!preg_match('/[A-Z]/', $new_password)) {
+        $errors[] = "Password must contain at least one uppercase letter";
+    }
+    
+    if (!preg_match('/[a-z]/', $new_password)) {
+        $errors[] = "Password must contain at least one lowercase letter";
+    }
+    
+    if (!preg_match('/[0-9]/', $new_password)) {
+        $errors[] = "Password must contain at least one number";
+    }
+    
+    if (!preg_match('/[^A-Za-z0-9]/', $new_password)) {
+        $errors[] = "Password must contain at least one special character";
+    }
+    
+    if (!empty($errors)) {
+        $_SESSION['password_error'] = "Password requirements not met: " . implode(", ", $errors);
         header("Location: account.php");
         exit();
     }
@@ -41,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = $check_query->get_result();
         
         if ($result->num_rows === 0) {
-            $_SESSION['error_message'] = "User not found!";
+            $_SESSION['password_error'] = "User not found!";
             header("Location: account.php");
             exit();
         }
@@ -69,49 +92,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             if ($update_query->execute()) {
                 error_log("Password update: SUCCESS");
-                
-                // SUCCESS MESSAGE FOR DEBUGGING
-                $_SESSION['success_message'] = "Password updated successfully! 
-                    DEBUG INFO: 
-                    - User: $username
-                    - Hash updated in password_hash column
-                    - Rows affected: " . $update_query->affected_rows;
-                
-                // Verify the update worked
-                $verify_query = $con->prepare("SELECT password_hash FROM user_account WHERE user_id = ?");
-                $verify_query->bind_param("s", $user_id);
-                $verify_query->execute();
-                $verify_result = $verify_query->get_result();
-                $updated_user = $verify_result->fetch_assoc();
-                
-                error_log("Password after update: " . substr($updated_user['password_hash'], 0, 20) . "...");
-                
-                // Test if new password verifies
-                $password_verifies = password_verify($new_password, $updated_user['password_hash']);
-                error_log("New password verifies: " . ($password_verifies ? 'YES' : 'NO'));
-                
-                // Add verification result to success message
-                if ($password_verifies) {
-                    $_SESSION['success_message'] .= " - VERIFICATION: SUCCESS - New password works!";
-                } else {
-                    $_SESSION['success_message'] .= " - VERIFICATION: FAILED - New password doesn't work!";
-                }
-                
+                $_SESSION['password_success'] = "Password updated successfully!";
             } else {
                 error_log("Password update: FAILED - " . $update_query->error);
-                $_SESSION['error_message'] = "Error updating password: " . $update_query->error;
+                $_SESSION['password_error'] = "Error updating password. Please try again.";
             }
         } else {
             error_log("Current password verification: FAILED");
-            error_log("Provided: " . $current_password);
-            error_log("Expected hash: " . $current_password_hash);
-            $_SESSION['error_message'] = "Current password is incorrect! 
-                DEBUG: Make sure you're entering the exact password you used during registration.";
+            $_SESSION['password_error'] = "Current password is incorrect. Please try again.";
         }
 
     } catch (Exception $e) {
         error_log("Password update exception: " . $e->getMessage());
-        $_SESSION['error_message'] = "Error: " . $e->getMessage();
+        $_SESSION['password_error'] = "An error occurred. Please try again.";
     }
 
     header("Location: account.php");

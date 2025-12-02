@@ -1,6 +1,6 @@
 <?php
 // --- CONFIGURATION --- 
-$geminiApiKey = 'AIzaSyBPw5paHjB1fHQQUu41lQWbwOYnkYgQ6k4';
+$geminiApiKey = '';
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
@@ -124,7 +124,6 @@ curl_setopt_array($ch, [
 $response = curl_exec($ch);
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $curlError = curl_error($ch);
-curl_close($ch);
 
 if ($response === false) {
     $errorResponse = [

@@ -652,8 +652,28 @@ $result = mysqli_query($con, $sql);
                                         onclick="confirmAppointment(this)">
                                         <i class="fas fa-check"></i>
                                     </button>
-                                    <?php endif; ?>
 
+                                    <a href="#" 
+                                        class="action-btn btn-accent" 
+                                        id="reschedBtn<?= $row['appointment_id'] ?>" 
+                                        data-id="<?= $row['appointment_id'] ?>"
+                                        onclick="return openReschedModalWithID(this, event);"
+                                        title="Reschedule">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </a>
+
+                                    <button type="button" class="action-btn btn-danger" title="Cancel"
+                                        data-appointment-id="<?php echo $row['appointment_id']; ?>"
+                                        onclick="cancelAppointmentByAdmin(this)">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+
+                                    <button type="button" class="action-btn btn-danger" title="No-Show"
+                                        data-appointment-id="<?php echo $row['appointment_id']; ?>"
+                                        onclick="markNoShow(this)">
+                                        <i class="fa-regular fa-eye-slash"></i>
+                                    </button>
+                                    <?php else: ?>
                                     <a href="#" 
                                         class="action-btn btn-accent" 
                                         id="reschedBtn<?= $row['appointment_id'] ?>" 
@@ -685,6 +705,7 @@ $result = mysqli_query($con, $sql);
                                         onclick="markNoShow(this)">
                                         <i class="fa-regular fa-eye-slash"></i>
                                     </button>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
@@ -3520,6 +3541,56 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         .catch(error => {
             console.error('Error:', error);
             showNotification('error', 'Error', 'An error occurred while marking as no-show. Please try again.');
+            button.disabled = false;
+            button.innerHTML = originalHTML;
+        });
+    }
+    
+    // Cancel Appointment by Admin
+    function cancelAppointmentByAdmin(button) {
+        const appointmentId = button.getAttribute('data-appointment-id');
+        
+        // Show confirmation dialog
+        if (!confirm(`Are you sure you want to cancel Appointment #${appointmentId}? An email notification will be sent to the patient.`)) {
+            return;
+        }
+        
+        const formData = new FormData();
+        formData.append('appointment_id', appointmentId);
+        
+        // Show loading state
+        const originalHTML = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        fetch('adminCancelAppointment.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                return response.json();
+            } else {
+                return { success: true };
+            }
+        })
+        .then(data => {
+            if (data.success) {
+                showNotification('success', 'Appointment Cancelled', data.message || 'Appointment has been cancelled and email notification sent.');
+                // Reload page after 1.5 seconds to show updated status
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showNotification('error', 'Error', data.error || data.message || 'Failed to cancel appointment. Please try again.');
+                button.disabled = false;
+                button.innerHTML = originalHTML;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('error', 'Error', 'An error occurred while cancelling the appointment. Please try again.');
             button.disabled = false;
             button.innerHTML = originalHTML;
         });

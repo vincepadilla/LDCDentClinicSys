@@ -37,7 +37,8 @@ if (!$appointment) {
 }
 
 // Check if appointment can be rescheduled
-if ($appointment['status'] === 'Cancelled' || $appointment['status'] === 'Complete' || $appointment['status'] === 'Completed') {
+// Allow cancelled appointments to be rescheduled, but prevent Complete/Completed appointments
+if ($appointment['status'] === 'Complete' || $appointment['status'] === 'Completed') {
     echo "<script>alert('This appointment cannot be rescheduled.'); window.location.href='account.php';</script>";
     exit();
 }
