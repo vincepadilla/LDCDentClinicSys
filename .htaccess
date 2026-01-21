@@ -1,0 +1,42 @@
+# Apache .htaccess configuration for LDCDentClinicSys
+
+# Enable rewrite engine
+RewriteEngine On
+
+# Set the base directory
+RewriteBase /
+
+# If the requested file or directory exists, serve it directly
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Route root and common pages to views directory
+RewriteRule ^$ views/index.php [L]
+RewriteRule ^login$ views/login.php [L]
+RewriteRule ^register$ views/register.php [L]
+RewriteRule ^account$ views/account.php [L]
+RewriteRule ^admin$ views/admin.php [L]
+RewriteRule ^payment$ views/payment.php [L]
+RewriteRule ^about$ views/about.php [L]
+RewriteRule ^blogs$ views/blogs.php [L]
+RewriteRule ^location$ views/location.php [L]
+
+# Route API/controller endpoints
+RewriteRule ^api/(.*)$ controllers/$1 [L]
+RewriteRule ^controllers/(.*)$ controllers/$1 [L]
+
+# Prevent direct access to sensitive files
+<FilesMatch "^(config\.php|\.htaccess)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Security: Prevent directory listing
+Options -Indexes
+
+# Set default charset
+AddDefaultCharset UTF-8
+
+# Enable error pages (optional)
+# ErrorDocument 404 /views/404.php
+
