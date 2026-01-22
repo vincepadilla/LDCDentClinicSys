@@ -846,7 +846,7 @@ $result = mysqli_query($con, $sql);
 
                 <div class="complete-appointment-form-group">
                     <label for="patient-id">Patient ID:</label>
-                    <input type="text" id="patient_id" name="patient_id" value="<?php echo isset($patient_id) ? htmlspecialchars($patient_id) : ''; ?>" readonly>
+                    <input type="text" id="patient_id" value="" readonly>
                 </div>
                 
                 <div class="complete-appointment-form-group">
@@ -3858,6 +3858,7 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         const form = event.target;
         const formData = new FormData(form);
         const appointmentId = document.getElementById('treatment_appointment_id').value;
+        const patientId = document.getElementById('treatment_patient_id').value;
         
         // Show loading state
         const submitBtn = form.querySelector('button[type="submit"]');
@@ -3865,38 +3866,88 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
         
+        // Log form data for debugging
+        console.log('Submitting treatment form...');
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ' + pair[1]);
+        }
+        
         fetch('../controllers/saveTreatment.php', {
             method: 'POST',
             body: formData
         })
         .then(response => {
+            // Check if response is ok
+            if (!response.ok) {
+                throw new Error('Network response was not ok: ' + response.status);
+            }
+            
             const contentType = response.headers.get("content-type");
             if (contentType && contentType.includes("application/json")) {
                 return response.json();
             } else {
-                // If it's HTML or redirect, assume success
-                return { success: true };
+                // Try to parse as text first, then JSON
+                return response.text().then(text => {
+                    console.log('Response text:', text);
+                    // Remove any whitespace or BOM
+                    text = text.trim();
+                    // Try to find JSON in the response
+                    const jsonMatch = text.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                        try {
+                            return JSON.parse(jsonMatch[0]);
+                        } catch (e) {
+                            console.error('JSON parse error:', e);
+                            throw new Error('Invalid JSON response: ' + text.substring(0, 100));
+                        }
+                    }
+                    throw new Error('No JSON found in response: ' + text.substring(0, 100));
+                });
             }
         })
         .then(data => {
-            if (data.success || data.status === 'success' || !data.message) {
+            console.log('Response data:', data);
+            
+            if (data.success === true || data.status === 'success') {
                 showCompletedNotification(appointmentId);
                 closeCompleteAppointmentModal();
                 // Reset form
                 form.reset();
-                // Reload page after 2 seconds to show updated appointment
-                setTimeout(() => {
-                    location.reload();
-                }, 2000);
+                
+                // Refresh the history section if the treatment history modal is open
+                const treatmentHistoryModal = document.getElementById('treatmentHistoryModal');
+                if (treatmentHistoryModal && treatmentHistoryModal.style.display === 'block') {
+                    // Reload treatment history for the patient
+                    if (typeof loadTreatmentHistory === 'function' && patientId) {
+                        loadTreatmentHistory(patientId);
+                    }
+                }
+                
+                // Refresh the appointments table without full page reload
+                // Check if we're in the appointment section
+                const appointmentSection = document.getElementById('appointment');
+                if (appointmentSection && appointmentSection.style.display !== 'none') {
+                    // Reload only the appointment section after a short delay
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    // If not in appointment section, just reload after showing notification
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                }
             } else {
-                showNotification('error', 'Error', data.message || 'Failed to save treatment. Please try again.');
+                const errorMsg = data.message || 'Failed to save treatment. Please try again.';
+                console.error('Save failed:', errorMsg);
+                showNotification('error', 'Error', errorMsg);
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalText;
             }
         })
         .catch(error => {
-            console.error('Error:', error);
-            showNotification('error', 'Error', 'An error occurred while saving treatment. Please try again.');
+            console.error('Fetch error:', error);
+            showNotification('error', 'Error', 'An error occurred while saving treatment: ' + error.message);
             submitBtn.disabled = false;
             submitBtn.innerHTML = originalText;
         });
@@ -4046,21 +4097,53 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
 
     //Complete Appointment Modal
     function openCompleteAppointmentModal(button) {
-    const patientId = button.getAttribute('data-patientid');
-    const appointmentId = button.getAttribute('data-appointmentid');
-    
-    // Set the values in the modal form
-    document.getElementById('treatment_patient_id').value = patientId;
-    document.getElementById('treatment_appointment_id').value = appointmentId;
-    document.getElementById("patient_id").value = patientId; // show in the disabled field
+        const patientId = button.getAttribute('data-patientid');
+        const appointmentId = button.getAttribute('data-appointmentid');
+        
+        // Validate that we have the required data
+        if (!patientId || !appointmentId) {
+            showNotification('error', 'Error', 'Missing patient or appointment information.');
+            return;
+        }
+        
+        const modal = document.getElementById('complete-appointment-modal');
+        const patientIdInput = document.getElementById('treatment_patient_id');
+        const appointmentIdInput = document.getElementById('treatment_appointment_id');
+        const patientIdDisplay = document.getElementById('patient_id');
+        
+        // Check if modal and form elements exist
+        if (!modal) {
+            console.error('Complete appointment modal not found');
+            showNotification('error', 'Error', 'Modal not found. Please refresh the page.');
+            return;
+        }
+        
+        if (!patientIdInput || !appointmentIdInput || !patientIdDisplay) {
+            console.error('Form elements not found');
+            showNotification('error', 'Error', 'Form elements not found. Please refresh the page.');
+            return;
+        }
+        
+        // Set the values in the modal form
+        patientIdInput.value = patientId;
+        appointmentIdInput.value = appointmentId;
+        patientIdDisplay.value = patientId; // show in the disabled field
 
-    // Show the modal
-    document.getElementById('complete-appointment-modal').style.display = 'block';
+        // Show the modal
+        modal.style.display = 'block';
+        
+        // Prevent body scroll when modal is open
+        document.body.style.overflow = 'hidden';
     }
 
     // Function to close the modal
     function closeCompleteAppointmentModal() {
-        document.getElementById('complete-appointment-modal').style.display = 'none';
+        const modal = document.getElementById('complete-appointment-modal');
+        if (modal) {
+            modal.style.display = 'none';
+            // Restore body scroll
+            document.body.style.overflow = 'auto';
+        }
     }
 
     // Event listeners for modal close

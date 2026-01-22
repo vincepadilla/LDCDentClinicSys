@@ -1,5 +1,49 @@
 <?php
-include 'config.php'; 
+// Start output buffering to prevent any accidental output
+ob_start();
+
+// Suppress errors and warnings that might output HTML
+error_reporting(0);
+ini_set('display_errors', 0);
+
+// Include config file - capture any output from die() statements
+$config_output = '';
+try {
+    ob_start();
+    include '../database/config.php';
+    $config_output = ob_get_clean();
+    
+    // If config output anything (like from die()), we have a connection problem
+    if ($config_output !== '') {
+        throw new Exception('Database connection failed');
+    }
+} catch (Exception $e) {
+    ob_clean();
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => false,
+        'status' => 'error',
+        'message' => 'Database connection failed. Please check your database configuration.'
+    ]);
+    ob_end_flush();
+    exit;
+}
+
+// Check if connection was successful
+if (!isset($con) || !$con) {
+    ob_clean();
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => false,
+        'status' => 'error',
+        'message' => 'Database connection failed. Please check your database configuration.'
+    ]);
+    ob_end_flush();
+    exit;
+}
+
+// Set JSON header early
+header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -30,8 +74,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $checkPatient->close();
 
     if (!empty($errors)) {
-        $error_message = implode("\\n", $errors);
-        echo "<script>alert('Error:\\n$error_message'); window.history.back();</script>";
+        ob_clean(); // Clear any output
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'status' => 'error',
+            'message' => implode("\n", $errors)
+        ]);
+        ob_end_flush();
         exit;
     }
 
@@ -52,7 +102,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
 
     if (!$insert) {
-        echo "<script>alert('Database prepare error: " . addslashes($con->error) . "'); window.history.back();</script>";
+        ob_clean(); // Clear any output
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'status' => 'error',
+            'message' => 'Database prepare error: ' . $con->error
+        ]);
+        ob_end_flush();
         exit;
     }
 
@@ -79,21 +136,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $updateStatus->close();
         }
 
-        echo "<script>
-                alert('✅ Treatment record saved successfully!');
-                window.location.href = 'admin.php#appointment';
-              </script>";
+        $insert->close();
+        
+        ob_clean(); // Clear any output
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'status' => 'success',
+            'message' => 'Treatment record saved successfully!',
+            'patient_id' => $patient_id,
+            'appointment_id' => $appointment_id
+        ]);
+        ob_end_flush();
     } else {
-        echo "<script>
-                alert('❌ Failed to save treatment record. Please try again.');
-                window.history.back();
-              </script>";
+        $error_message = $insert->error ? $insert->error : 'Database execution failed';
+        $insert->close();
+        
+        ob_clean(); // Clear any output
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'status' => 'error',
+            'message' => 'Failed to save treatment record: ' . $error_message
+        ]);
+        ob_end_flush();
     }
 
-    $insert->close();
-    $con->close();
-
 } else {
-    echo "<script>alert('Invalid request method.'); window.history.back();</script>";
+    ob_clean(); // Clear any output
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => false,
+        'status' => 'error',
+        'message' => 'Invalid request method.'
+    ]);
+    ob_end_flush();
 }
 ?>
