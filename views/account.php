@@ -12,6 +12,9 @@ if (!isset($_SESSION['userID'])) {
 
 $user_id = $_SESSION['userID'];
 
+// Walk-in session appointment (no DB save)
+$walkInSessionAppt = $_SESSION['walkin_appointment'] ?? null;
+
 // ✅ Fetch user and patient information
 $user_query = $con->prepare("
     SELECT ua.user_id, ua.username, ua.first_name, ua.last_name, ua.email, ua.phone,
@@ -71,6 +74,23 @@ if (!empty($user['patient_id'])) {
     $feedback_result = $feedback_check->get_result();
     $hasFeedback = $feedback_result->num_rows > 0;
     $feedback_check->close();
+}
+
+// If a walk-in reservation was just made, show it as the "recent appointment" without saving to DB.
+if (!empty($walkInSessionAppt) && is_array($walkInSessionAppt)) {
+    $recent_appointments = [[
+        'appointment_id' => 'WALK-IN',
+        'appointment_date' => 'Walk-In',
+        'appointment_time' => 'To be arranged at clinic',
+        'service_display' => $walkInSessionAppt['sub_service'] ?? ($walkInSessionAppt['service_name'] ?? 'Walk-In Service'),
+        'sub_service' => $walkInSessionAppt['sub_service'] ?? null,
+        'service_category' => $walkInSessionAppt['service_name'] ?? null,
+        'status' => 'Confirmed (Walk-In)',
+        'created_at' => $walkInSessionAppt['created_at'] ?? null,
+        'payment_method' => $walkInSessionAppt['payment_method'] ?? 'Cash',
+        'payment_status' => 'paid',
+        '_is_walkin' => true,
+    ]];
 }
 
 // ✅ Debug output to browser console
@@ -638,6 +658,7 @@ if (isset($_SESSION['password_error'])) {
                         $status = $recent_appointment['status'];
                         $payment_method = $recent_appointment['payment_method'] ?? null;
                         $payment_status = $recent_appointment['payment_status'] ?? null;
+                        $isWalkInAppointment = !empty($recent_appointment['_is_walkin']) || ($status === 'Confirmed (Walk-In)');
                         
                         // Check if cash payment and not paid yet (check both lowercase and uppercase for safety)
                         $isCashUnpaid = ($payment_method == 'Cash' && (strtolower($payment_status) == 'pending' || $payment_status == null));
@@ -669,6 +690,7 @@ if (isset($_SESSION['password_error'])) {
                         $statusClass = match($status) {
                             'Pending' => 'status-pending',
                             'Confirmed' => 'status-confirmed',
+                            'Confirmed (Walk-In)' => 'status-confirmed',
                             'Cancelled' => 'status-cancelled',
                             'Complete' => 'status-completed',
                             'Completed' => 'status-completed',
@@ -679,8 +701,12 @@ if (isset($_SESSION['password_error'])) {
                         // Determine if buttons should be disabled
                         $buttonsDisabled = ($status == 'Cancelled' || $status == 'Complete' || $status == 'Completed' || $isCashUnpaid);
                         
-                        // Print Receipt button is only enabled when status is "Confirmed"
-                        $printReceiptDisabled = ($status != 'Confirmed');
+                        // Print Receipt enabled only for digital Confirmed appointments.
+                        // Walk-in appointments should NOT allow printing.
+                        $printReceiptDisabled = ($isWalkInAppointment || $status !== 'Confirmed');
+
+                        // Reschedule is disabled for walk-in appointments
+                        $rescheduleDisabled = ($buttonsDisabled || $isWalkInAppointment);
                         ?>
                         <div class="appointment-card" style="margin-bottom: 20px;">
                             <div class="appointment-header">
@@ -722,6 +748,8 @@ if (isset($_SESSION['password_error'])) {
                                     echo "<p>Your appointment has been scheduled. Please wait for confirmation.</p>";
                                 } elseif ($status == "Confirmed") {
                                     echo "<p>Your appointment has been confirmed.</p>";
+                                } elseif ($status == "Walk-In") {
+                                    echo "<p>Your walk-in appointment is confirmed. Please proceed to the clinic for final scheduling.</p>";
                                 } elseif ($status == "Complete" || $status == "Completed") {
                                     echo "<p>Your appointment has been completed.</p>";
                                 } elseif ($status == "Cancelled") {
@@ -741,7 +769,7 @@ if (isset($_SESSION['password_error'])) {
                                     </a>
                                 <?php else: ?>
                                     <!-- Show all buttons for non-cancelled appointments -->
-                                    <a href="../controllers/printAppointmentReceipt.php?id=<?= $recent_appointment['appointment_id']; ?>" 
+                                    <a href="../controllers/printAppointmentReceipt.php?id=<?= urlencode($recent_appointment['appointment_id']); ?>" 
                                        class="btn btn-secondary <?= $printReceiptDisabled ? 'disabled' : ''; ?>"
                                        target="_blank"
                                        <?= $printReceiptDisabled ? 'onclick="return false;" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;"' : ''; ?>>
@@ -756,8 +784,8 @@ if (isset($_SESSION['password_error'])) {
                                     </button>
 
                                     <a href="reschedule.php?id=<?= $recent_appointment['appointment_id']; ?>" 
-                                       class="btn btn-primary <?= $buttonsDisabled ? 'disabled' : ''; ?>"
-                                       <?= $buttonsDisabled ? 'style="opacity: 0.5; cursor: not-allowed;"' : ''; ?>>
+                                       class="btn btn-primary <?= $rescheduleDisabled ? 'disabled' : ''; ?>"
+                                       <?= $rescheduleDisabled ? 'onclick="return false;" style="opacity: 0.5; cursor: not-allowed; pointer-events: none;"' : ''; ?>>
                                         Reschedule
                                     </a>
                                 <?php endif; ?>

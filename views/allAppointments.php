@@ -68,7 +68,6 @@ if (!empty($user['patient_id'])) {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../assets/css/accountstyle.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
     <style>
         .back-button {
             display: inline-flex;
@@ -480,9 +479,6 @@ if (!empty($user['patient_id'])) {
                                          $status != 'Cancelled' && 
                                          $status != 'Complete' && 
                                          $status != 'Completed');
-                    
-                    // Generate QR code data (using appointment_id or ticket_code if available)
-                    $qrData = $ticket_code ? $ticket_code : $appointment['appointment_id'];
                     ?>
                     <div class="appointment-card" style="margin-bottom: 20px;">
                         <div class="appointment-header">
@@ -508,17 +504,6 @@ if (!empty($user['patient_id'])) {
                                 <span class="detail-value">Dr. Michelle Landero</span>
                             </div>
                         </div>
-                        
-                        <!-- QR Code Display Section -->
-                        <?php if ($status != 'Cancelled' && $status != 'Complete' && $status != 'Completed'): ?>
-                            <div class="qr-code-section" style="margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: center;">
-                                <h4 style="margin: 0 0 15px 0; color: #333;">Your Appointment QR Code</h4>
-                                <canvas id="qr-code-<?= htmlspecialchars($appointment['appointment_id']); ?>" style="display: inline-block; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"></canvas>
-                                <?php if ($ticket_code): ?>
-                                    <p style="margin: 15px 0 0 0; font-size: 14px; color: #666;">Ticket Code: <strong><?= htmlspecialchars($ticket_code); ?></strong></p>
-                                <?php endif; ?>
-                            </div>
-                        <?php endif; ?>
                         
                         <div class="appointment-message">
                             <?php
@@ -780,40 +765,6 @@ function cancelAppointment(appointmentId) {
     });
 }
 // ==================== END CANCEL APPOINTMENT ====================
-
-// ==================== QR CODE GENERATION ====================
-document.addEventListener('DOMContentLoaded', function() {
-    // Generate QR codes for all appointments
-    <?php foreach ($all_appointments as $appointment): ?>
-        <?php 
-        $qrData = isset($appointment['ticket_code']) && $appointment['ticket_code'] ? $appointment['ticket_code'] : $appointment['appointment_id'];
-        $qrElementId = 'qr-code-' . $appointment['appointment_id'];
-        $status = $appointment['status'];
-        ?>
-        <?php if ($status != 'Cancelled' && $status != 'Complete' && $status != 'Completed'): ?>
-            const qrElement<?= $appointment['appointment_id']; ?> = document.getElementById('<?= $qrElementId; ?>');
-            if (qrElement<?= $appointment['appointment_id']; ?>) {
-                QRCode.toCanvas(qrElement<?= $appointment['appointment_id']; ?>, '<?= htmlspecialchars($qrData, ENT_QUOTES); ?>', {
-                    width: 200,
-                    margin: 2,
-                    color: {
-                        dark: '#000000',
-                        light: '#FFFFFF'
-                    }
-                }, function (error) {
-                    if (error) {
-                        console.error('QR Code generation error:', error);
-                        const parent = qrElement<?= $appointment['appointment_id']; ?>.parentElement;
-                        if (parent) {
-                            parent.innerHTML = '<p style="color: red;">QR Code unavailable</p>';
-                        }
-                    }
-                });
-            }
-        <?php endif; ?>
-    <?php endforeach; ?>
-});
-// ==================== END QR CODE GENERATION ====================
 
 // ==================== FEATURE 1: DAY BEFORE CONFIRMATION ====================
 function confirmAppointment(appointmentId) {

@@ -2246,6 +2246,17 @@ $dentistsResult = mysqli_query($con, $dentistsQuery);
                                         <i class="fas fa-times"></i>
                                     </button>
                                     <?php endif; ?>
+
+                                    <?php 
+                                    // Edit Button
+                                    if ($currentStatus != 'paid' && $currentStatus != 'failed'): 
+                                    ?>
+                                    <button type="button" class="action-btn btn-primary" title="Edit Status"
+                                        data-payment-id="<?php echo $row['payment_id']; ?>" 
+                                        onclick="editPayment(this)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>   
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>

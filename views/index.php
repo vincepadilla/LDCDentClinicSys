@@ -705,7 +705,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         <div class="modal-content">
             <span class="close-modal">&times;</span>
             <h2>Book Your Appointment</h2>
-            <form action="payment.php" method="POST" id="appointmentForm">
+            <form action="../views/payment.php" method="POST" id="appointmentForm">
                 <input type="hidden" name="fname" value="<?php echo htmlspecialchars($fname); ?>">
                 <input type="hidden" name="lname" value="<?php echo htmlspecialchars($lname); ?>">
                 <input type="hidden" name="email" value="<?php echo htmlspecialchars($email); ?>">
@@ -747,6 +747,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                 </div>
 
                 <div class="form-group">
+                    <label for="popup_payment_method">Payment Method</label>
+                    <select id="popup_payment_method" name="payment_mode" required>
+                        <option value="digital" selected>Digital Payment</option>
+                        <option value="walkin">Walk-In Payment</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="popup_date_group">
                     <label for="popup_date">Preferred Date</label>
                     <input type="date" id="popup_date" name="date"
                         min="<?php echo $today; ?>"
@@ -754,7 +762,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                         required>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" id="popup_time_group">
                     <label for="popup_time">Preferred Time</label>
                     <select id="popup_time" name="time" required>
                         <option value="">Select a time</option>
@@ -1161,9 +1169,73 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
                 if (confirm("You need to log in before booking. Do you want to log in now?")) {
                     window.location.href = "login.php";
                 }
+                return;
+            }
+
+            const paymentModeEl = document.getElementById('popup_payment_method');
+            const paymentMode = paymentModeEl ? paymentModeEl.value : 'digital';
+
+            if (paymentMode === 'walkin') {
+                // Route Walk-In Payment to walkin.php and allow submission without date/time
+                appointmentForm.action = "../views/walkin.php";
+
+                const dateEl = document.getElementById('popup_date');
+                const timeEl = document.getElementById('popup_time');
+                if (dateEl) dateEl.required = false;
+                if (timeEl) timeEl.required = false;
+                // No further validation here; backend walk-in flow will handle details.
+            } else {
+                // Digital Payment: keep existing payment.php flow
+                appointmentForm.action = "../views/payment.php";
             }
         });
     }
+
+    // Payment mode behavior: toggle date/time visibility + requirement
+    (function initPaymentModeToggle() {
+        const paymentModeEl = document.getElementById('popup_payment_method');
+        const dateGroup = document.getElementById('popup_date_group');
+        const timeGroup = document.getElementById('popup_time_group');
+        const dateEl = document.getElementById('popup_date');
+        const timeEl = document.getElementById('popup_time');
+
+        if (!paymentModeEl || !dateGroup || !timeGroup || !dateEl || !timeEl) return;
+
+        function setDateTimeVisible(visible) {
+            dateGroup.style.display = visible ? '' : 'none';
+            timeGroup.style.display = visible ? '' : 'none';
+
+            // Digital Payment keeps current behavior: required fields, visible
+            // Walk-In Payment: hide fields and remove required validation
+            dateEl.required = !!visible;
+            timeEl.required = !!visible;
+
+            if (!visible) {
+                // Clear any closure warning & re-enable controls
+                const closureWarningDiv = document.getElementById('closure-warning');
+                if (closureWarningDiv) closureWarningDiv.remove();
+                $("#popup_time").prop("disabled", false);
+                if (isLoggedIn) $("#popupBookBtn").prop("disabled", false);
+            }
+        }
+
+        async function applyPaymentMode() {
+            const mode = paymentModeEl.value;
+            if (mode === 'walkin') {
+                setDateTimeVisible(false);
+                // Don't force user to pick date/time in the modal; walk-in flow handles it separately.
+            } else {
+                setDateTimeVisible(true);
+                // Restore normal availability behavior if a date is selected
+                if (dateEl.value) {
+                    checkAvailability();
+                }
+            }
+        }
+
+        paymentModeEl.addEventListener('change', applyPaymentMode);
+        applyPaymentMode(); // initialize
+    })();
 
     // Notification System
     <?php if (isset($_SESSION['valid'])): ?>
