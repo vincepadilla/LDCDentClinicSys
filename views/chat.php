@@ -450,6 +450,12 @@
     const clearChatBtn = document.getElementById('clear-chat');
     const suggestQuestionsBtn = document.getElementById('suggest-questions');
     const quickQuestionBtns = document.querySelectorAll('.quick-question-btn');
+    
+    // API endpoint candidates (supports being served from "/" or from "/views/")
+    const apiUrlCandidates = [
+      'controllers/chat_api.php',
+      '../controllers/chat_api.php'
+    ];
 
     // Dental services information
     const dentalServices = {
@@ -740,48 +746,63 @@ For accurate pricing information, we recommend scheduling a consultation where w
     }
 
     // New function to handle AI API calls
-    function sendToAI(message) {
-      // Get chat history for context
+    async function sendToAI(message) {
       const chatHistory = getChatHistory();
+      const payload = { message, history: chatHistory };
       
-      fetch('chat_api.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: message,
-          history: chatHistory
-        })
-      })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        return response.json();
-      })
-      .then(data => {
-        removeTypingIndicator();
-        
-        if (data.answer) {
-          // Remove asterisks from long responses
-          let cleanedAnswer = data.answer;
-          if (cleanedAnswer.length > 100) {
-            cleanedAnswer = cleanedAnswer.replace(/\*/g, '');
+      let lastErr = null;
+      
+      for (const apiUrl of apiUrlCandidates) {
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          
+          const contentType = response.headers.get('content-type') || '';
+          const data = contentType.includes('application/json')
+            ? await response.json()
+            : { answer: await response.text() };
+          
+          if (!response.ok) {
+            // If this path doesn't exist, try the next candidate
+            if (response.status === 404) {
+              lastErr = new Error(`API not found at ${apiUrl}`);
+              continue;
+            }
+            // Surface server-provided error message (e.g., missing GEMINI_API_KEY)
+            throw new Error(data?.answer || `Request failed (${response.status})`);
           }
-          addMessage(cleanedAnswer, 'bot');
-        } else {
-          addMessage("I'm sorry, I didn't get a response. Please try again.", 'bot');
+          
+          removeTypingIndicator();
+          
+          if (data && data.answer) {
+            let cleanedAnswer = data.answer;
+            if (cleanedAnswer.length > 100) {
+              cleanedAnswer = cleanedAnswer.replace(/\*/g, '');
+            }
+            addMessage(cleanedAnswer, 'bot');
+          } else {
+            addMessage("I'm sorry, I didn't get a response. Please try again.", 'bot');
+          }
+          
+          addFollowUpQuestions();
+          return;
+        } catch (err) {
+          lastErr = err;
         }
-        
-        addFollowUpQuestions();
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        removeTypingIndicator();
-        addMessage("I'm having trouble connecting right now. You can ask me about our services, hours, location, or contact us directly at:\nPhone: 09458471502\nEmail: landerodentalclinic@gmail.com", 'bot');
-        addFollowUpQuestions();
-      });
+      }
+      
+      console.error('Error:', lastErr);
+      removeTypingIndicator();
+      addMessage(
+        (lastErr && lastErr.message)
+          ? `Chat service error: ${lastErr.message}`
+          : "I'm having trouble connecting right now. You can ask me about our services, hours, location, or contact us directly at:\nPhone: 09458471502\nEmail: landerodentalclinic@gmail.com",
+        'bot'
+      );
+      addFollowUpQuestions();
     }
 
     // Helper function to get chat history for AI context

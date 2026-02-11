@@ -449,6 +449,9 @@ body {
     border-radius: 12px;
     border: 1px solid var(--border-color);
     box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .availability-header {
@@ -645,6 +648,42 @@ body {
         width: 120px;
         height: 120px;
     }
+    
+    /* Calendar responsive adjustments for tablets */
+    .availability-calendar {
+        padding: 15px 18px 14px;
+    }
+    
+    .cal-grid {
+        gap: 5px;
+    }
+    
+    .cal-day {
+        min-height: 60px;
+        padding: 5px 4px 6px;
+    }
+    
+    .cal-day .day-number {
+        font-size: 0.75rem;
+    }
+    
+    .cal-day .day-status-text {
+        font-size: 0.65rem;
+    }
+    
+    .cal-day .bar {
+        font-size: 0.55rem;
+        padding: 1px 0;
+    }
+    
+    .cal-empty {
+        min-height: 60px;
+    }
+    
+    .cal-legend {
+        font-size: 0.65rem;
+        gap: 8px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -668,5 +707,145 @@ body {
     
     .confirmation-checkbox input {
         margin-bottom: 10px;
+    }
+    
+    /* Calendar responsive adjustments for mobile phones */
+    .availability-calendar {
+        padding: 12px 14px 12px;
+        margin-top: 15px;
+    }
+    
+    .availability-header {
+        margin-bottom: 12px;
+    }
+    
+    .availability-header .cal-month {
+        font-size: 0.9rem;
+    }
+    
+    .cal-nav {
+        width: 28px;
+        height: 28px;
+        font-size: 0.9rem;
+    }
+    
+    .cal-grid {
+        gap: 4px;
+    }
+    
+    .cal-cell {
+        font-size: 0.7rem;
+    }
+    
+    .cal-head {
+        font-size: 0.7rem;
+        padding-bottom: 5px;
+    }
+    
+    .cal-empty {
+        min-height: 50px;
+    }
+    
+    .cal-day {
+        min-height: 50px;
+        padding: 4px 3px 5px;
+        border-radius: 6px;
+    }
+    
+    .cal-day .day-number {
+        font-size: 0.7rem;
+        line-height: 1.2;
+    }
+    
+    .cal-day .day-status-text {
+        font-size: 0.6rem;
+        line-height: 1.2;
+        margin-top: 1px;
+    }
+    
+    .cal-day .day-status-bars {
+        gap: 2px;
+        margin-top: 3px;
+    }
+    
+    .cal-day .bar {
+        font-size: 0.5rem;
+        padding: 1px 0;
+        border-radius: 15px;
+        min-width: 0;
+    }
+    
+    .cal-legend {
+        font-size: 0.6rem;
+        gap: 6px;
+        margin-top: 12px;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .legend-item {
+        gap: 3px;
+    }
+    
+    .legend-dot {
+        width: 8px;
+        height: 8px;
+    }
+}
+
+/* Extra small devices (very small phones) */
+@media (max-width: 360px) {
+    .availability-calendar {
+        padding: 10px 12px 10px;
+    }
+    
+    .cal-grid {
+        gap: 3px;
+    }
+    
+    .cal-day {
+        min-height: 45px;
+        padding: 3px 2px 4px;
+    }
+    
+    .cal-day .day-number {
+        font-size: 0.65rem;
+    }
+    
+    .cal-day .day-status-text {
+        font-size: 0.55rem;
+    }
+    
+    .cal-day .bar {
+        font-size: 0.45rem;
+    }
+    
+    .cal-empty {
+        min-height: 45px;
+    }
+    
+    .cal-head {
+        font-size: 0.65rem;
+    }
+    
+    .availability-header .cal-month {
+        font-size: 0.85rem;
+    }
+    
+    .cal-nav {
+        width: 26px;
+        height: 26px;
+        font-size: 0.85rem;
+    }
+}
+
+/* Landscape orientation adjustments for tablets */
+@media (max-width: 1024px) and (orientation: landscape) {
+    .cal-day {
+        min-height: 55px;
+    }
+    
+    .cal-empty {
+        min-height: 55px;
     }
 }

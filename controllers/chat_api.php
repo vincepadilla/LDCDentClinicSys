@@ -1,12 +1,60 @@
 <?php
 // --- CONFIGURATION --- 
-$geminiApiKey = '';
+
+require __DIR__ . '/../vendor/autoload.php';
+
+// Load environment variables
+$rootDir = dirname(__DIR__);
+$dotenv = Dotenv\Dotenv::createImmutable($rootDir);
+// Don't crash if .env is missing in production environments
+$dotenv->safeLoad();
+
+// Read your API key from an environment variable (set this in .env or server env)
+// Example .env entry: GEMINI_API_KEY=your_key_here
+$geminiApiKey =
+    $_ENV['GEMINI_API_KEY'] ??
+    $_SERVER['GEMINI_API_KEY'] ??
+    getenv('GEMINI_API_KEY') ??
+    // common alternative names
+    ($_ENV['GOOGLE_API_KEY'] ?? $_SERVER['GOOGLE_API_KEY'] ?? getenv('GOOGLE_API_KEY') ?? null) ??
+    null;
+
+// Fallback: allow a local (non-.env) config file for Windows/XAMPP setups
+// Create: <project-root>/config/gemini.local.php returning either a string key OR ['api_key' => '...']
+if (!$geminiApiKey) {
+    $localConfigPath = $rootDir . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'gemini.local.php';
+    if (is_file($localConfigPath)) {
+        $localCfg = require $localConfigPath;
+        if (is_string($localCfg) && trim($localCfg) !== '') {
+            $geminiApiKey = trim($localCfg);
+        } elseif (is_array($localCfg) && !empty($localCfg['api_key'])) {
+            $geminiApiKey = trim((string) $localCfg['api_key']);
+        }
+    }
+}
+
+// Fallback: allow a PHP constant if defined elsewhere
+if (!$geminiApiKey && defined('GEMINI_API_KEY')) {
+    $geminiApiKey = (string) GEMINI_API_KEY;
+}
+
+if (!$geminiApiKey) {
+    http_response_code(500);
+    echo json_encode([
+        'answer' => 'Server misconfiguration: GEMINI_API_KEY is not set. Add it to a .env file in the project root or set it in your server environment.',
+        'history' => [],
+        'source' => 'error'
+    ]);
+    exit;
+}
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+$requestMethod = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+if ($requestMethod === 'OPTIONS') {
     exit(0);
 }
 

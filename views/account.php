@@ -12,9 +12,6 @@ if (!isset($_SESSION['userID'])) {
 
 $user_id = $_SESSION['userID'];
 
-// Walk-in session appointment (no DB save)
-$walkInSessionAppt = $_SESSION['walkin_appointment'] ?? null;
-
 // ✅ Fetch user and patient information
 $user_query = $con->prepare("
     SELECT ua.user_id, ua.username, ua.first_name, ua.last_name, ua.email, ua.phone,
@@ -76,20 +73,72 @@ if (!empty($user['patient_id'])) {
     $feedback_check->close();
 }
 
-// If a walk-in reservation was just made, show it as the "recent appointment" without saving to DB.
-if (!empty($walkInSessionAppt) && is_array($walkInSessionAppt)) {
+// ✅ Fetch most recent walk-in appointment from database
+$walkInSessionAppt = $_SESSION['walkin_appointment'] ?? null;
+$walkin_id_to_fetch = null;
+
+// If we have a walk-in ID in session (just created), fetch that specific one
+if (!empty($walkInSessionAppt['walkin_id'])) {
+    $walkin_id_to_fetch = $walkInSessionAppt['walkin_id']; // VARCHAR, not int
+}
+
+// Fetch walk-in appointment from database
+$walkin_appointment = null;
+if ($walkin_id_to_fetch) {
+    // Fetch specific walk-in by ID (VARCHAR)
+    $walkin_query = $con->prepare("
+        SELECT walkin_id, patient_id, service, sub_service, 
+               dentist_name, branch, status, created_at
+        FROM walkin_appointments
+        WHERE walkin_id = ?
+        ORDER BY created_at DESC
+        LIMIT 1
+    ");
+    $walkin_query->bind_param("s", $walkin_id_to_fetch);
+    $walkin_query->execute();
+    $walkin_result = $walkin_query->get_result();
+    $walkin_appointment = $walkin_result->fetch_assoc();
+    $walkin_query->close();
+} else {
+    // Fetch most recent walk-in by patient_id
+    if (!empty($user['patient_id'])) {
+        $walkin_query = $con->prepare("
+            SELECT walkin_id, patient_id, service, sub_service, 
+                   dentist_name, branch, status, created_at
+            FROM walkin_appointments
+            WHERE patient_id = ?
+            ORDER BY created_at DESC
+            LIMIT 1
+        ");
+        $walkin_query->bind_param("s", $user['patient_id']);
+        $walkin_query->execute();
+        $walkin_result = $walkin_query->get_result();
+        $walkin_appointment = $walkin_result->fetch_assoc();
+        $walkin_query->close();
+    }
+}
+
+// If we have a walk-in appointment from database, show it as the "recent appointment"
+if (!empty($walkin_appointment)) {
+    // Always display sub_service as the service (as requested)
+    // sub_service should always be present from the database
+    $service_display = !empty($walkin_appointment['sub_service']) 
+        ? $walkin_appointment['sub_service'] 
+        : ($walkin_appointment['service'] ?? 'N/A');
+    
     $recent_appointments = [[
-        'appointment_id' => 'WALK-IN',
+        'appointment_id' => 'WALK-IN-' . $walkin_appointment['walkin_id'],
         'appointment_date' => 'Walk-In',
         'appointment_time' => 'To be arranged at clinic',
-        'service_display' => $walkInSessionAppt['sub_service'] ?? ($walkInSessionAppt['service_name'] ?? 'Walk-In Service'),
-        'sub_service' => $walkInSessionAppt['sub_service'] ?? null,
-        'service_category' => $walkInSessionAppt['service_name'] ?? null,
-        'status' => 'Confirmed (Walk-In)',
-        'created_at' => $walkInSessionAppt['created_at'] ?? null,
-        'payment_method' => $walkInSessionAppt['payment_method'] ?? 'Cash',
+        'service_display' => $service_display,
+        'sub_service' => $walkin_appointment['sub_service'] ?? null,
+        'service_category' => $walkin_appointment['service'] ?? null,
+        'status' => 'Walk-in',
+        'created_at' => $walkin_appointment['created_at'] ?? null,
+        'payment_method' => 'Cash',
         'payment_status' => 'paid',
         '_is_walkin' => true,
+        'walkin_id' => $walkin_appointment['walkin_id'],
     ]];
 }
 
@@ -658,7 +707,7 @@ if (isset($_SESSION['password_error'])) {
                         $status = $recent_appointment['status'];
                         $payment_method = $recent_appointment['payment_method'] ?? null;
                         $payment_status = $recent_appointment['payment_status'] ?? null;
-                        $isWalkInAppointment = !empty($recent_appointment['_is_walkin']) || ($status === 'Confirmed (Walk-In)');
+                        $isWalkInAppointment = !empty($recent_appointment['_is_walkin']) || ($status === 'Walk-in');
                         
                         // Check if cash payment and not paid yet (check both lowercase and uppercase for safety)
                         $isCashUnpaid = ($payment_method == 'Cash' && (strtolower($payment_status) == 'pending' || $payment_status == null));
@@ -690,7 +739,7 @@ if (isset($_SESSION['password_error'])) {
                         $statusClass = match($status) {
                             'Pending' => 'status-pending',
                             'Confirmed' => 'status-confirmed',
-                            'Confirmed (Walk-In)' => 'status-confirmed',
+                            'Walk-in' => 'status-confirmed',
                             'Cancelled' => 'status-cancelled',
                             'Complete' => 'status-completed',
                             'Completed' => 'status-completed',

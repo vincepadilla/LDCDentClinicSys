@@ -42,7 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
     $phone = htmlspecialchars($_POST['phone'] ?? $phone);
     $address = htmlspecialchars($_POST['address'] ?? $address);
 
-    $subService = htmlspecialchars($_POST['sub_service'] ?? $subService);
+    // Get sub_service from POST (check both possible field names for compatibility)
+    $subService = htmlspecialchars($_POST['sub_service'] ?? $_POST['subService'] ?? $subService);
 
     // Map subService to service_id
     switch ($subService) {
@@ -107,27 +108,136 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST)) {
         $branch = 'Taytay Rizal Branch';
     }
 
-    // If user clicked Reserve Appointment (walk-in), do NOT save to DB.
+    // If user clicked Reserve Appointment (walk-in), save to walkin_appointments table
     if (!empty($_POST['reserve_walkin'])) {
-        $_SESSION['walkin_appointment'] = [
-            'created_at' => date('Y-m-d H:i:s'),
-            'first_name' => $fname,
-            'last_name' => $lname,
-            'age' => $age,
-            'gender' => $gender,
-            'email' => $email,
-            'phone' => $phone,
-            'address' => $address,
-            'service_id' => $service_id,
-            'service_name' => $service_name ?? 'Walk-In Service',
-            'sub_service' => $subService,
-            'branch' => $branch,
-            'dentist' => $dentist,
-            'payment_method' => 'Cash',
-        ];
+        // Get or create patient_id for the logged-in user
+        $userID = $_SESSION['userID'];
+        $userID_escaped = mysqli_real_escape_string($con, $userID);
+        
+        // Check if patient exists
+        $checkPatientQuery = "SELECT patient_id FROM patient_information WHERE user_id = '$userID_escaped' LIMIT 1";
+        $checkPatientResult = mysqli_query($con, $checkPatientQuery);
+        $existingPatient = mysqli_fetch_assoc($checkPatientResult);
+        
+        if (empty($existingPatient)) {
+            // Patient doesn't exist, create new patient record
+            // Function to generate new prefixed ID
+            function generateID($prefix, $table, $column, $con) {
+                $query = "SELECT $column FROM $table ORDER BY $column DESC LIMIT 1";
+                $result = mysqli_query($con, $query);
+                $row = mysqli_fetch_assoc($result);
+                if ($row) {
+                    $lastNum = intval(substr($row[$column], strlen($prefix))) + 1;
+                } else {
+                    $lastNum = 1;
+                }
+                return $prefix . str_pad($lastNum, 3, '0', STR_PAD_LEFT);
+            }
+            
+            $patient_id = generateID('P', 'patient_information', 'patient_id', $con);
+            $fname_escaped = mysqli_real_escape_string($con, trim($fname));
+            $lname_escaped = mysqli_real_escape_string($con, trim($lname));
+            $birthdate_escaped = mysqli_real_escape_string($con, trim($birthdate));
+            $gender_escaped = mysqli_real_escape_string($con, trim($gender));
+            $phone_escaped = mysqli_real_escape_string($con, trim($phone));
+            $email_escaped = mysqli_real_escape_string($con, trim($email));
+            $address_escaped = mysqli_real_escape_string($con, trim($address));
+            
+            $insertPatient = "INSERT INTO patient_information 
+                (patient_id, user_id, first_name, last_name, birthdate, gender, phone, email, address) 
+                VALUES 
+                ('$patient_id', '$userID', '$fname_escaped', '$lname_escaped', '$birthdate_escaped', '$gender_escaped', '$phone_escaped', '$email_escaped', '$address_escaped')";
+            
+            if (!mysqli_query($con, $insertPatient)) {
+                error_log('Patient creation error: ' . mysqli_error($con));
+                echo "<script>alert('Error creating patient record. Please try again.');
+                window.location.href='index.php';</script>";
+                exit();
+            }
+        } else {
+            $patient_id = $existingPatient['patient_id'];
+        }
+        
+        // Ensure service_name is set - if still empty, use subService as fallback
+        if (empty($service_name) || $service_name === 'Unknown Service') {
+            $service_name = $subService ?: 'Walk-In Service';
+        }
+        
+        // Generate walkin_id as VARCHAR (e.g., WI001, WI002, etc.)
+        function generateWalkInID($con) {
+            $query = "SELECT walkin_id FROM walkin_appointments ORDER BY walkin_id DESC LIMIT 1";
+            $result = mysqli_query($con, $query);
+            $row = mysqli_fetch_assoc($result);
+            if ($row && !empty($row['walkin_id'])) {
+                // Extract number from walkin_id (e.g., WI001 -> 1)
+                $lastId = $row['walkin_id'];
+                if (preg_match('/WI(\d+)/', $lastId, $matches)) {
+                    $lastNum = intval($matches[1]) + 1;
+                } else {
+                    $lastNum = 1;
+                }
+            } else {
+                $lastNum = 1;
+            }
+            return 'WI' . str_pad($lastNum, 3, '0', STR_PAD_LEFT);
+        }
+        
+        $walkin_id = generateWalkInID($con);
+        
+        // Prepare data for database insertion (from lines 322-342: Service, Sub-Service, Dentist, Branch)
+        // Ensure sub_service is not empty - it's required
+        if (empty($subService) || trim($subService) === '') {
+            error_log('Walk-in error: sub_service is empty');
+            echo "<script>alert('Error: Sub-service is required. Please go back and select a service.');
+            window.location.href='index.php';</script>";
+            exit();
+        }
+        
+        $service_name_db = mysqli_real_escape_string($con, trim($service_name));
+        $sub_service_db = mysqli_real_escape_string($con, trim($subService));
+        $dentist_name_db = mysqli_real_escape_string($con, trim($dentist));
+        $branch_db = mysqli_real_escape_string($con, trim($branch));
+        $patient_id_escaped = mysqli_real_escape_string($con, $patient_id);
+        $walkin_id_escaped = mysqli_real_escape_string($con, $walkin_id);
+        
+        // Insert into walkin_appointments table with walkin_id as VARCHAR
+        $insertWalkIn = "INSERT INTO walkin_appointments 
+            (walkin_id, patient_id, service, sub_service, dentist_name, branch, status) 
+            VALUES 
+            ('$walkin_id_escaped', '$patient_id_escaped', '$service_name_db', '$sub_service_db', '$dentist_name_db', '$branch_db', 'Walk-in')";
+        
+        if (mysqli_query($con, $insertWalkIn)) {
+            
+            // Store in session for account.php to display
+            $_SESSION['walkin_appointment'] = [
+                'walkin_id' => $walkin_id,
+                'created_at' => date('Y-m-d H:i:s'),
+                'patient_id' => $patient_id,
+                'first_name' => $fname,
+                'last_name' => $lname,
+                'age' => $age,
+                'gender' => $gender,
+                'email' => $email,
+                'phone' => $phone,
+                'address' => $address,
+                'service_id' => $service_id,
+                'service_name' => $service_name_db,
+                'sub_service' => $sub_service_db,
+                'branch' => $branch_db,
+                'dentist' => $dentist_name_db,
+                'payment_method' => 'Cash',
+                'status' => 'Walk-in',
+            ];
 
-        header("Location: account.php?walkin=1");
-        exit();
+            header("Location: account.php?walkin=1");
+            exit();
+        } else {
+            // Error saving to database
+            error_log('Walk-in appointment error: ' . mysqli_error($con));
+            echo "<script>alert('Error saving walk-in appointment. Please try again.');
+            window.location.href='index.php';</script>";
+            exit();
+        }
     }
 }
 
@@ -201,6 +311,40 @@ if (!empty($birthdate) && $birthdate !== 'N/A') {
             color: rgba(255,255,255,0.75);
             font-style: italic;
         }
+        
+        /* Responsive tooltip for mobile devices */
+        @media (max-width: 480px) {
+            .cal-tooltip {
+                max-width: calc(100vw - 24px);
+                padding: 10px;
+                font-size: 11px;
+                border-radius: 8px;
+            }
+            .cal-tooltip .tt-title {
+                font-size: 11px;
+                margin-bottom: 6px;
+            }
+            .cal-tooltip .tt-row {
+                margin: 5px 0;
+            }
+            .cal-tooltip ul {
+                padding-left: 16px;
+                margin: 4px 0 0 0;
+            }
+            .cal-tooltip li {
+                margin: 1px 0;
+            }
+        }
+        
+        @media (max-width: 360px) {
+            .cal-tooltip {
+                font-size: 10px;
+                padding: 8px;
+            }
+            .cal-tooltip .tt-title {
+                font-size: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -271,7 +415,8 @@ if (!empty($birthdate) && $birthdate !== 'N/A') {
                 <input type="hidden" name="phone" value="<?= $phone ?>">
                 <input type="hidden" name="street" value="<?= $address ?>">
                 <input type="hidden" name="service_id" value="<?= $service_id ?>">
-                <input type="hidden" name="subService" value="<?= $subService ?>">
+                <input type="hidden" name="sub_service" value="<?= htmlspecialchars($subService) ?>">
+                <input type="hidden" name="subService" value="<?= htmlspecialchars($subService) ?>">
                 <input type="hidden" name="subservice_id" value="<?= $subservice_id ?? '' ?>">
                 <input type="hidden" name="dentist" value="<?= $dentist ?>">
                 <input type="hidden" name="branch" value="<?= $branch ?>">
@@ -282,7 +427,7 @@ if (!empty($birthdate) && $birthdate !== 'N/A') {
             <div class="payment-section">
                 <div class="section-header">
                     <h2>Doctor's Availability</h2>
-                    <p>Select a day that works for you. Final date and time will be arranged at the clinic.</p>
+                    <p>Below are the dentist’s available dates and times. Please check the schedule to know when you may visit.</p>
                 </div>
 
                 <div class="payment-method-section">
@@ -302,10 +447,6 @@ if (!empty($birthdate) && $birthdate !== 'N/A') {
                     </div>
                 </div>
                 
-                <div class="fee-notice">
-                    <p><strong>Consultation Fee:</strong> ₱500.00</p>
-                    <p>This appointment fee will be deducted from the total payment.</p>
-                </div>
             </div>
         </div>
 
@@ -548,20 +689,71 @@ if (!empty($birthdate) && $birthdate !== 'N/A') {
         if (prevBtn) prevBtn.onclick = () => { changeMonth(-1); };
         if (nextBtn) nextBtn.onclick = () => { changeMonth(1); };
 
-        // Hover tooltip events (show times)
+        // Hover tooltip events (show times) - with touch support for mobile
         const dayCells = calendarEl.querySelectorAll('.cal-day[data-date]');
+        let activeTooltipCell = null;
+        
+        function showTooltip(cell) {
+            const dateStr = cell.getAttribute('data-date');
+            const dayData = scheduleData[dateStr] || { blockedSlots: [], bookedSlots: [] };
+            tooltipEl.innerHTML = buildTooltipHtml(dateStr, dayData);
+            tooltipEl.classList.add('visible');
+            // position after content set
+            positionTooltip(cell.getBoundingClientRect());
+            activeTooltipCell = cell;
+        }
+        
+        function hideTooltip() {
+            tooltipEl.classList.remove('visible');
+            activeTooltipCell = null;
+        }
+        
         dayCells.forEach(cell => {
+            // Mouse events for desktop
             cell.addEventListener('mouseenter', () => {
-                const dateStr = cell.getAttribute('data-date');
-                const dayData = scheduleData[dateStr] || { blockedSlots: [], bookedSlots: [] };
-                tooltipEl.innerHTML = buildTooltipHtml(dateStr, dayData);
-                tooltipEl.classList.add('visible');
-                // position after content set
-                positionTooltip(cell.getBoundingClientRect());
+                if (!('ontouchstart' in window)) {
+                    showTooltip(cell);
+                }
             });
             cell.addEventListener('mouseleave', () => {
-                tooltipEl.classList.remove('visible');
+                if (!('ontouchstart' in window)) {
+                    hideTooltip();
+                }
             });
+            
+            // Touch events for mobile devices
+            cell.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                // Hide previous tooltip if any
+                if (activeTooltipCell && activeTooltipCell !== cell) {
+                    hideTooltip();
+                }
+                // Toggle tooltip on tap
+                if (activeTooltipCell === cell) {
+                    hideTooltip();
+                } else {
+                    showTooltip(cell);
+                }
+            });
+            
+            // Click event as fallback for some mobile browsers
+            cell.addEventListener('click', (e) => {
+                if ('ontouchstart' in window) {
+                    e.preventDefault();
+                    if (activeTooltipCell === cell) {
+                        hideTooltip();
+                    } else {
+                        showTooltip(cell);
+                    }
+                }
+            });
+        });
+        
+        // Hide tooltip when tapping outside on mobile
+        document.addEventListener('touchstart', (e) => {
+            if (activeTooltipCell && !activeTooltipCell.contains(e.target) && !tooltipEl.contains(e.target)) {
+                hideTooltip();
+            }
         });
     }
 
